@@ -824,7 +824,8 @@ public class ItemSpriteSheet {
 		private static final int WIDTH = 16;
 		public static final int SIZE = 8;
 
-		public static TextureFilm film = new TextureFilm( Assets.Sprites.ITEM_ICONS, SIZE, SIZE );
+		// SoSPD: only atlas coordinates are needed by the calculation core; do not load a GL texture.
+		public static TextureFilm film = new TextureFilm( 128, 64, SIZE, SIZE );
 
 		private static int xy(int x, int y){
 			x -= 1; y -= 1;
