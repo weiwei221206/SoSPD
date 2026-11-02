@@ -1010,8 +1010,11 @@ public abstract class Level implements Bundlable {
 			//create a dummy heap, give it a dummy sprite, don't add it to the game, and return it.
 			//effectively nullifies whatever the logic calling this wants to do, including dropping items.
 			Heap heap = new Heap();
-			ItemSprite sprite = heap.sprite = new ItemSprite();
-			sprite.link(heap);
+			// SoSPD: no game scene exists during seed generation. A discarded heap needs no GPU sprite.
+			if (ShatteredPixelDungeon.scene() != null) {
+				ItemSprite sprite = heap.sprite = new ItemSprite();
+				sprite.link(heap);
+			}
 			return heap;
 
 		}

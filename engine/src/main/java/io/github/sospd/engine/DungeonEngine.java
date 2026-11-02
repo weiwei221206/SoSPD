@@ -11,6 +11,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
 import com.shatteredpixel.shatteredpixeldungeon.items.journal.DocumentPage;
 import com.shatteredpixel.shatteredpixeldungeon.items.journal.Guidebook;
 import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
+import com.shatteredpixel.shatteredpixeldungeon.items.keys.Key;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.Ring;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.*;
@@ -22,6 +23,7 @@ import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.watabou.utils.Random;
 import io.github.sospd.domain.Models.*;
 import io.github.sospd.domain.SeedCodec;
+import io.github.sospd.domain.ItemRules;
 import java.io.File;
 import java.lang.reflect.Modifier;
 import java.time.LocalDate;
@@ -59,6 +61,7 @@ public final class DungeonEngine {
                 for (Heap heap : level.heaps.valueList()) {
                     for (Item item : heap.items) {
                         if (item instanceof DocumentPage || item instanceof Guidebook) continue;
+                        if (item instanceof Gold || item instanceof Key) continue;
                         if (heap.type == Heap.Type.FOR_SALE && item instanceof Bag) continue;
                         boolean reliable = isReliableLoot(level, heap, item);
                         String source = reliable ? heapLabel(heap.type) : "隐藏房间 · 类型可能变化";
@@ -108,7 +111,10 @@ public final class DungeonEngine {
             for (PendingFloor floor : generated) {
                 checkCancelled(cancelled);
                 List<FoundItem> items = new ArrayList<>();
-                for (Supplier<FoundItem> supplier : floor.items()) items.add(supplier.get());
+                for (Supplier<FoundItem> supplier : floor.items()) {
+                    FoundItem item = supplier.get();
+                    if (!ItemRules.excluded(item.id())) items.add(item);
+                }
                 items.sort(Comparator.comparing((FoundItem i) -> i.category().ordinal()).thenComparing(FoundItem::name));
                 floors.add(new Floor(floor.depth(), floor.feeling(), List.copyOf(items), floor.rooms()));
             }
@@ -138,8 +144,9 @@ public final class DungeonEngine {
                         Item item = ((Item) cls.getDeclaredConstructor().newInstance()).identify();
                         if (item instanceof DocumentPage || item instanceof Guidebook) continue;
                         if (item instanceof Bag) continue;
+                        if (item instanceof Gold || item instanceof Key) continue;
                         String name = clean(item.name());
-                        if (name.contains(Messages.NO_TEXT_FOUND)) throw new IllegalStateException("物品名称缺少中文翻译：" + id(cls));
+                        if (name.contains(Messages.NO_TEXT_FOUND)) throw new IllegalStateException("物品名称资源缺失：" + id(cls));
                         String description = clean(item.desc());
                         entries.putIfAbsent(id(item.getClass()), new CatalogEntry(id(item.getClass()), name,
                                 description, category(item), item.isUpgradable(), item.image));
@@ -158,7 +165,7 @@ public final class DungeonEngine {
         SPDSettings.challenges(request.challenges());
         Dungeon.daily = request.dailyDate() != null;
         Dungeon.dailyReplay = false;
-        if (Dungeon.daily) SPDSettings.lastDaily(LocalDate.parse(request.dailyDate()).toEpochDay() * 86_400_000L);
+        if (Dungeon.daily) SPDSettings.lastDaily(SeedCodec.dailySeed(LocalDate.parse(request.dailyDate())) - SeedCodec.TOTAL_SEEDS);
         else SPDSettings.customSeed(SeedCodec.toCode(SeedCodec.fromText(request.input())));
         Dungeon.initSeed();
         GamesInProgress.selectedClass = HeroClass.WARRIOR;

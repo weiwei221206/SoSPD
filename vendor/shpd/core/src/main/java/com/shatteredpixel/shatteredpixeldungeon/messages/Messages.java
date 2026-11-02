@@ -49,7 +49,7 @@ public class Messages {
 	private static Languages lang;
 	private static Locale locale;
 
-	public static final String NO_TEXT_FOUND = "【缺少中文文本】";
+	public static final String NO_TEXT_FOUND = "【缺少文本】";
 
 	public static Languages lang(){
 		return lang;

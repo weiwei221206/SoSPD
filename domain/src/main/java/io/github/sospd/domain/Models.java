@@ -20,6 +20,12 @@ public final class Models {
     public record DungeonReport(String input, String seedCode, long seed, String dailyDate,
                                 int challenges, List<Floor> floors) {}
     public record Condition(String id, Category category, Integer minimumLevel) {}
+    public record SearchDraft(List<Condition> conditions, boolean matchAll) {
+        public SearchDraft {
+            conditions = conditions == null ? List.of() : List.copyOf(conditions.stream()
+                    .filter(c -> !ItemRules.excluded(c.id())).collect(java.util.stream.Collectors.toList()));
+        }
+    }
     public record ScoutRequest(String input, String dailyDate, int floors, int challenges) {
         public ScoutRequest {
             if (floors < 1 || floors > 24) throw new IllegalArgumentException("探查深度应为 1—24 层");
@@ -29,6 +35,7 @@ public final class Models {
     public record SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges) {
         public SearchRequest {
             if (conditions == null || conditions.isEmpty()) throw new IllegalArgumentException("请先添加找种条件");
+            if (conditions.stream().anyMatch(c -> ItemRules.excluded(c.id()))) throw new IllegalArgumentException("搜索条件包含已排除的物品，请重新选择");
             conditions = List.copyOf(conditions);
             if (floors < 1 || floors > 24) throw new IllegalArgumentException("搜索深度应为 1—24 层");
             if (challenges < 0 || challenges > 511) throw new IllegalArgumentException("挑战设置不正确");

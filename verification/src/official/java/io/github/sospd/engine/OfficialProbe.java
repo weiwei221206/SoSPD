@@ -19,7 +19,7 @@ public final class OfficialProbe {
             for (var request : VerificationMatrix.cases()) {
                 SPDSettings.challenges(request.challenges());
                 Dungeon.daily = request.date() != null; Dungeon.dailyReplay = false;
-                if (Dungeon.daily) SPDSettings.lastDaily(LocalDate.parse(request.date()).toEpochDay() * 86_400_000L);
+                if (Dungeon.daily) SPDSettings.lastDaily(LocalDate.parse(request.date()).atStartOfDay(java.time.ZoneOffset.ofHours(8)).toInstant().toEpochMilli());
                 else SPDSettings.customSeed(request.input());
                 Dungeon.initSeed();
                 GamesInProgress.selectedClass = HeroClass.WARRIOR;

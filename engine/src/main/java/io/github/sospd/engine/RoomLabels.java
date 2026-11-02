@@ -14,7 +14,7 @@ final class RoomLabels {
     private static final Properties LABELS = new Properties();
     static {
         try (InputStream stream = RoomLabels.class.getResourceAsStream("/sospd/rooms_zh.properties")) {
-            if (stream == null) throw new IllegalStateException("缺少房间中文资源");
+            if (stream == null) throw new IllegalStateException("缺少房间名称资源");
             LABELS.load(new InputStreamReader(stream, StandardCharsets.UTF_8));
         } catch (IOException e) { throw new ExceptionInInitializerError(e); }
     }

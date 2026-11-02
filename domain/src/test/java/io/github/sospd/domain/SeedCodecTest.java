@@ -19,10 +19,16 @@ public class SeedCodecTest {
         assertEquals(96354, SeedCodec.fromText("abc"));
         assertNotEquals(SeedCodec.fromText("abcdefghi"), SeedCodec.fromText("ABCDEFGHI"));
     }
-    @Test public void dailySeedsUseUtcDayAndDoNotOverlapOrdinarySeeds() {
-        assertEquals(SeedCodec.TOTAL_SEEDS, SeedCodec.dailySeed(LocalDate.of(1970, 1, 1)));
+    @Test public void dailySeedsStartAtMidnightUtcPlusEight() {
+        assertEquals(SeedCodec.TOTAL_SEEDS - 28_800_000L, SeedCodec.dailySeed(LocalDate.of(1970, 1, 1)));
         assertEquals(86400000, SeedCodec.dailySeed(LocalDate.of(2026, 11, 3))
                 - SeedCodec.dailySeed(LocalDate.of(2026, 11, 2)));
+    }
+    @Test public void dailyCalendarChangesAtBeijingMidnight() {
+        var before = java.time.Instant.parse("2026-11-02T15:59:59Z");
+        var after = java.time.Instant.parse("2026-11-02T16:00:00Z");
+        assertEquals(LocalDate.of(2026, 11, 2), before.atOffset(SeedCodec.DAILY_ZONE).toLocalDate());
+        assertEquals(LocalDate.of(2026, 11, 3), after.atOffset(SeedCodec.DAILY_ZONE).toLocalDate());
     }
     @Test(expected = IllegalArgumentException.class) public void emptySeedRejected() { SeedCodec.fromText("  "); }
     @Test(expected = IllegalArgumentException.class) public void negativeSeedRejected() { SeedCodec.fromText("-123"); }

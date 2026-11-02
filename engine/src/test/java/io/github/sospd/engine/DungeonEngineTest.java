@@ -29,6 +29,25 @@ public class DungeonEngineTest {
         assertEquals(24, report.floors().size());
         assertEquals(24, report.floors().get(23).depth());
     }
+    @Test public void reportedSeed666WorksPastFirstBossAndAtFullDepth() {
+        for (int depth : new int[]{4, 5, 6, 24}) {
+            assertEquals(depth, engine().scout(new ScoutRequest("666", null, depth, 0), () -> false, f -> {}).floors().size());
+        }
+    }
+    @Test public void nullPrizeDoesNotCreateAGameSprite() {
+        engine();
+        var level = new com.shatteredpixel.shatteredpixeldungeon.levels.SewerLevel();
+        assertNull(level.drop(null, 0).sprite);
+        assertNull(com.badlogic.gdx.Gdx.gl);
+    }
+    @Test public void keysAndGoldAreExcludedButSkeletonKeyRemains() {
+        var catalog = engine().catalog();
+        assertTrue(catalog.stream().anyMatch(i -> i.id().equals("items.artifacts.SkeletonKey")));
+        assertFalse(catalog.stream().anyMatch(i -> i.id().equals("items.Gold") || i.id().startsWith("items.keys.")));
+        var report = engine().scout(new ScoutRequest("666", null, 24, 0), () -> false, f -> {});
+        assertFalse(report.floors().stream().flatMap(f -> f.items().stream())
+                .anyMatch(i -> i.id().equals("items.Gold") || i.id().startsWith("items.keys.")));
+    }
     @Test public void codecMatchesPinnedUpstreamForNonemptyPositiveInputs() {
         for (String text : new String[]{"ABC-DEF-GHI", "abc-def-ghi", "ABCDEFGHI", "abcdefghi", "42", "破碎地牢", "SoSPD"}) {
             assertEquals(DungeonSeed.convertFromText(text), SeedCodec.fromText(text));

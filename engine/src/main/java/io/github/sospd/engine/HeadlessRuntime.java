@@ -85,7 +85,7 @@ final class HeadlessRuntime {
         ResourceHandle(String path) { super(path, Files.FileType.Classpath); }
         @Override public InputStream read() {
             InputStream stream = HeadlessRuntime.class.getClassLoader().getResourceAsStream(path());
-            if (stream == null) throw new IllegalStateException("缺少中文资源：" + path());
+            if (stream == null) throw new IllegalStateException("缺少文本资源：" + path());
             return stream;
         }
         @Override public boolean exists() {

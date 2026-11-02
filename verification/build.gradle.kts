@@ -42,12 +42,17 @@ val prepareOfficial by tasks.registering {
                 includeEmptyDirs = false
             }
         }
-        // The official oracle gets only texture-coordinate substitutions, never generation changes.
+        // The official oracle gets rendering-only substitutions, never generation changes.
         val sprite = upstream.file("core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/sprites/ItemSpriteSheet.java").asFile
         val source = sprite.readText()
             .replace("new TextureFilm( Assets.Sprites.ITEMS, SIZE, SIZE )", "new TextureFilm( 256, 512, SIZE, SIZE )")
             .replace("new TextureFilm( Assets.Sprites.ITEM_ICONS, SIZE, SIZE )", "new TextureFilm( 128, 64, SIZE, SIZE )")
         sprite.writeText(source)
+        val level = upstream.file("core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/levels/Level.java").asFile
+        level.writeText(level.readText().replace("\r\n", "\n").replace(
+            "ItemSprite sprite = heap.sprite = new ItemSprite();\n\t\t\tsprite.link(heap);",
+            "if (ShatteredPixelDungeon.scene() != null) {\n\t\t\t\tItemSprite sprite = heap.sprite = new ItemSprite();\n\t\t\t\tsprite.link(heap);\n\t\t\t}"
+        ))
     }
 }
 val copyBridge by tasks.registering(Copy::class) {
