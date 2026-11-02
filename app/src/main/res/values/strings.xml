@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="launcher_name">SoSPD</string>
+    <string name="app_name">Seeds of SPD</string>
+    <string name="channel_name">种子计算</string>
+    <string name="channel_description">显示正在进行的探查和找种任务</string>
+</resources>
+
