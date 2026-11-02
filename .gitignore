@@ -19,5 +19,6 @@ captures/
 *.hprof
 .DS_Store
 Thumbs.db
+*.md
 
 
