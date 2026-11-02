@@ -104,7 +104,7 @@ public final class DungeonEngine {
                     try {
                         Item item = ((Item) cls.getDeclaredConstructor().newInstance()).identify();
                         String name = clean(item.name());
-                        if (name.contains(Messages.NO_TEXT_FOUND)) continue;
+                        if (name.contains(Messages.NO_TEXT_FOUND)) throw new IllegalStateException("物品名称缺少中文翻译：" + id(cls));
                         String description = clean(item.desc());
                         entries.putIfAbsent(id(item.getClass()), new CatalogEntry(id(item.getClass()), name,
                                 description, category(item), item.isUpgradable(), item.image));
