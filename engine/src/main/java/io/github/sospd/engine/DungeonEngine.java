@@ -165,7 +165,8 @@ public final class DungeonEngine {
         SPDSettings.challenges(request.challenges());
         Dungeon.daily = request.dailyDate() != null;
         Dungeon.dailyReplay = false;
-        if (Dungeon.daily) SPDSettings.lastDaily(SeedCodec.dailySeed(LocalDate.parse(request.dailyDate())) - SeedCodec.TOTAL_SEEDS);
+        if (Dungeon.daily) SPDSettings.lastDaily(SeedCodec.dailySeed(LocalDate.parse(request.dailyDate()),
+                java.time.ZoneId.of(request.dailyZone())) - SeedCodec.TOTAL_SEEDS);
         else SPDSettings.customSeed(SeedCodec.toCode(SeedCodec.fromText(request.input())));
         Dungeon.initSeed();
         GamesInProgress.selectedClass = HeroClass.WARRIOR;

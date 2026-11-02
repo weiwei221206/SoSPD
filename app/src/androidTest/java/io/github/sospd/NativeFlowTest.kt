@@ -98,7 +98,7 @@ class NativeFlowTest {
 
     @Test fun dailyRunUsesDate() {
         compose.onNodeWithText("每日挑战").performClick()
-        compose.onNodeWithText(java.time.LocalDate.now(io.github.sospd.domain.SeedCodec.DAILY_ZONE).toString()).assertIsDisplayed()
+        compose.onNodeWithText(java.time.LocalDate.now().toString()).assertIsDisplayed()
         compose.onAllNodesWithText("日期遵循", substring = true).assertCountEquals(0)
         compose.onNodeWithText("开始探查").performClick()
         compose.waitUntil(20_000) { compose.onAllNodesWithText("探查结果").fetchSemanticsNodes().isNotEmpty() }

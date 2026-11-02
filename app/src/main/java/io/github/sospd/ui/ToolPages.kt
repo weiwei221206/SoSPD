@@ -25,14 +25,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.sospd.data.ThemeMode
 import io.github.sospd.domain.Models.*
-import io.github.sospd.domain.SeedCodec
 import java.time.*
 
 @Composable
 fun ScoutPage(state: AppUiState, idle: Boolean, model: AppViewModel) {
     var input by rememberSaveable { mutableStateOf("") }
     var daily by rememberSaveable { mutableStateOf(false) }
-    var date by rememberSaveable { mutableStateOf(LocalDate.now(SeedCodec.DAILY_ZONE).toString()) }
+    var date by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var showDate by remember { mutableStateOf(false) }
     val context = LocalContext.current
     LazyColumn(Modifier.widthIn(max = 760.dp).fillMaxSize(), contentPadding = PaddingValues(20.dp),

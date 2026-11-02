@@ -1,13 +1,12 @@
 package io.github.sospd.domain;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.Locale;
 
 /** Seed semantics follow Shattered Pixel Dungeon 4.0.2 DungeonSeed (GPL-3.0-or-later). */
 public final class SeedCodec {
     public static final long TOTAL_SEEDS = 5_429_503_678_976L;
-    public static final ZoneOffset DAILY_ZONE = ZoneOffset.ofHours(8);
     private SeedCodec() {}
 
     public static long fromCode(String code) {
@@ -51,7 +50,11 @@ public final class SeedCodec {
     }
 
     public static long dailySeed(LocalDate date) {
-        return date.atStartOfDay(DAILY_ZONE).toInstant().toEpochMilli() + TOTAL_SEEDS;
+        return dailySeed(date, ZoneId.systemDefault());
+    }
+
+    public static long dailySeed(LocalDate date, ZoneId zone) {
+        return date.atStartOfDay(zone).toInstant().toEpochMilli() + TOTAL_SEEDS;
     }
 
     public static long next(long seed) { return (seed + 1) % TOTAL_SEEDS; }

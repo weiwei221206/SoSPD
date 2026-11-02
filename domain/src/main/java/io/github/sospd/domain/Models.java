@@ -26,10 +26,17 @@ public final class Models {
                     .filter(c -> !ItemRules.excluded(c.id())).collect(java.util.stream.Collectors.toList()));
         }
     }
-    public record ScoutRequest(String input, String dailyDate, int floors, int challenges) {
+    public record ScoutRequest(String input, String dailyDate, int floors, int challenges, String dailyZone) {
+        public ScoutRequest(String input, String dailyDate, int floors, int challenges) {
+            this(input, dailyDate, floors, challenges, dailyDate == null ? null : java.time.ZoneId.systemDefault().getId());
+        }
         public ScoutRequest {
             if (floors < 1 || floors > 24) throw new IllegalArgumentException("探查深度应为 1—24 层");
             if (challenges < 0 || challenges > 511) throw new IllegalArgumentException("挑战设置不正确");
+            if (dailyDate != null) {
+                if (dailyZone == null) dailyZone = java.time.ZoneId.systemDefault().getId();
+                java.time.ZoneId.of(dailyZone);
+            }
         }
     }
     public record SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges) {
