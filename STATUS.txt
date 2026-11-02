@@ -1,0 +1,36 @@
+Seeds of SPD / SoSPD
+版本：4.0.2-zhcn1（versionCode 1）
+状态：初步开发版本，2026-11-03
+
+已实现
+- Kotlin / Jetpack Compose / Material 3 原生界面，淡蓝色顶栏、页面与导航栏分区。
+- 指定种子探查、按 UTC 日期的每日挑战探查，逐层物品与房间结果。
+- 中文物品与房间图鉴、可视化找种条件、最低强化等级、任一/全部匹配。
+- 可停止的后台搜索、持续通知、搜索检查点、任务中断后的手动继续。
+- Room 本地任务记录、DataStore 偏好、深浅主题。
+- 最大深度和挑战集中在设置；输入框粘贴；结果复制种子及系统分享。
+- 原生桌面图标采用官方下水道地板与水晶钥匙；桌面名称 SoSPD，程序名称 Seeds of SPD。
+- 英文参考资料仅保存在 upstream-reference，不打包到 APK；资源补译与运行时语言均为简体中文。
+
+当前规则
+- 忽略指南书、指南页、故事页及商店背包；不作为找种条件或结果比对项。
+- 隐藏实验室的药水和隐藏图书馆的卷轴依赖官方代码中的 Class-keyed HashMap 遍历顺序，
+  可能随运行环境变化；结果明确标记，并排除出确定找种匹配。
+- 使用战士的初始状态计算地牢生成；不模拟途中战斗、拾取、炼金、天赋或装备饰品的影响。
+- 不提供关于页；当前仅支持游戏 4.0.2。
+
+构建
+- JDK 17，Android SDK 36 / Build Tools 36.0.0，最低 Android 10（API 29）。
+- Windows: .\gradlew.bat :app:assembleDebug
+- 单元测试: .\gradlew.bat :domain:test :engine:test
+- 官方对照: .\gradlew.bat :verification:verifyOfficial
+- 安卓流程: .\gradlew.bat :app:connectedDebugAndroidTest
+- 检查: .\gradlew.bat :app:lintDebug
+- 生成精简测试签名安装包: .\tools\package-preview.ps1 -SdkRoot <SDK路径>
+- 本机 SDK、local.properties、构建产物、签名文件、Markdown 文件均被 .gitignore 排除。
+
+交付
+- artifacts/SoSPD-4.0.2-zhcn1.apk：经过 R8 精简和测试签名的可安装 APK。
+- artifacts/SoSPD-4.0.2-zhcn1.apk.sha256：校验摘要。
+- artifacts/home.png、artifacts/report.png：模拟器实际界面截图。
+- APK 使用本机 Android Debug 证书签名；私钥不纳入 Git。

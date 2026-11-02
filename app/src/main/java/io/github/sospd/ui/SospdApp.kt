@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.sospd.data.TaskEntity
+import io.github.sospd.BuildConfig
 import io.github.sospd.domain.Models.*
 import java.time.Instant
 import java.time.ZoneId
@@ -46,7 +47,7 @@ fun SospdApp(model: AppViewModel) {
                     if (state.report != null) IconButton(model::closeReport) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "返回") }
                 }, actions = {
                     if (state.report == null) {
-                        SuggestionChip({}, { Text("4.0.2") }, enabled = false)
+                        SuggestionChip({}, { Text(BuildConfig.VERSION_NAME, style = MaterialTheme.typography.labelSmall) }, enabled = false)
                         IconButton({ showHistory = true }) { Icon(Icons.Outlined.History, "最近记录") }
                     }
                 }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh))
