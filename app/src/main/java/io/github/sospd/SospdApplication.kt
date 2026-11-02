@@ -20,7 +20,7 @@ class AppContainer(app: Application) {
     val database = Room.databaseBuilder(app, AppDatabase::class.java, "sospd.db").build()
     val tasks = database.tasks()
     val gson = Gson()
-    val preferences = PreferencesRepository(app)
+    val preferences = PreferencesRepository(app, gson)
     val engine by lazy { DungeonEngine(File(app.filesDir, "engine")) }
     val work = MutableStateFlow<WorkState?>(null)
     val historyVersion = MutableStateFlow(0L)

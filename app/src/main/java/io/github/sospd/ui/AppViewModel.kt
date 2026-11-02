@@ -29,13 +29,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val mutableState = MutableStateFlow(AppUiState())
     val state = mutableState.asStateFlow()
     val work = container.work.asStateFlow()
-    private var awaitingResult = false
+    private var awaitingTaskId: String? = null
     init {
         viewModelScope.launch { container.preferences.settings.collect { p -> mutableState.update { it.copy(settings = p) } } }
         viewModelScope.launch {
             try {
-                val catalog = withContext(Dispatchers.IO) { container.ready.await(); container.engine.catalog() }
-                mutableState.update { it.copy(catalog = catalog, loading = false) }
+                val (catalog, draft) = withContext(Dispatchers.IO) {
+                    container.ready.await()
+                    container.engine.catalog() to container.preferences.searchDraft.first()
+                }
+                val ids = catalog.map { it.id() }.toSet()
+                mutableState.update { it.copy(catalog = catalog, loading = false,
+                    conditions = draft.conditions().filter { condition -> condition.id() in ids }, matchAll = draft.matchAll()) }
             } catch (e: Exception) {
                 android.util.Log.e("SoSPD", "图鉴加载失败", e)
                 mutableState.update { it.copy(loading = false, error = "图鉴加载失败，请重新打开应用。") }
@@ -45,9 +50,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             container.historyVersion.collect {
                 val rows = withContext(Dispatchers.IO) { container.ready.await(); container.tasks.recent() }
                 mutableState.update { it.copy(history = rows) }
-                val completed = rows.firstOrNull()?.takeIf { it.status in setOf("FOUND", "COMPLETED", "FAILED", "CANCELLED", "EXHAUSTED") }
-                if (awaitingResult && completed != null) {
-                    awaitingResult = false
+                val completed = rows.firstOrNull { row -> row.id == awaitingTaskId && row.status in setOf("FOUND", "COMPLETED", "FAILED", "CANCELLED", "EXHAUSTED") }
+                if (completed != null) {
+                    awaitingTaskId = null
                     if (completed.status in setOf("FOUND", "COMPLETED")) openReport(completed)
                     if (completed.status == "FAILED") showError(completed.error ?: "计算未能完成，请重试。")
                 }
@@ -76,21 +81,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         closeReport()
         start(true) { DungeonTaskService.resume(getApplication(), row.id) }
     }
-    private fun start(searching: Boolean, action: () -> Unit) {
+    private fun start(searching: Boolean, action: () -> String) {
         container.work.value = WorkState("pending", searching, totalFloors = state.value.settings.floors)
-        awaitingResult = true
-        try { action() } catch (e: Exception) {
-            container.work.value = null; awaitingResult = false
+        try { awaitingTaskId = action() } catch (e: Exception) {
+            container.work.value = null; awaitingTaskId = null
             showError("无法启动计算，请重试。")
         }
     }
     fun stop() { DungeonTaskService.stop(getApplication()) }
-    fun setMatchAll(value: Boolean) { mutableState.update { it.copy(matchAll = value) } }
+    fun setMatchAll(value: Boolean) { mutableState.update { it.copy(matchAll = value) }; saveDraft() }
     fun addCondition(entry: CatalogEntry, minimumLevel: Int?) {
         mutableState.update { s -> s.copy(conditions = s.conditions.filterNot { it.id() == entry.id() }
             + Condition(entry.id(), entry.category(), minimumLevel)) }
+        saveDraft()
     }
-    fun removeCondition(id: String) { mutableState.update { s -> s.copy(conditions = s.conditions.filterNot { it.id() == id }) } }
+    fun removeCondition(id: String) {
+        mutableState.update { s -> s.copy(conditions = s.conditions.filterNot { it.id() == id }) }
+        saveDraft()
+    }
+    private fun saveDraft() {
+        val current = state.value
+        container.scope.launch(Dispatchers.Main.immediate) {
+            container.preferences.saveSearchDraft(SearchDraft(current.conditions, current.matchAll))
+        }
+    }
     fun openReport(row: TaskEntity) {
         if (row.reportJson == null) return
         runCatching { container.gson.fromJson(row.reportJson, DungeonReport::class.java) }

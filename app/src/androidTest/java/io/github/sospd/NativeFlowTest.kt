@@ -7,12 +7,31 @@ import android.os.Build
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelStore
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.core.app.ApplicationProvider
 import org.junit.*
+import org.junit.rules.ExternalResource
 import io.github.sospd.work.DungeonTaskService
+import io.github.sospd.domain.Models.*
+import io.github.sospd.domain.ConditionMatcher
+import io.github.sospd.data.TaskEntity
+import io.github.sospd.ui.AppViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 class NativeFlowTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule(order = 0) val resetPreferences = object : ExternalResource() {
+        override fun before() = runBlocking {
+            val container = ApplicationProvider.getApplicationContext<SospdApplication>().container
+            container.ready.await()
+            container.preferences.setFloors(4)
+            container.preferences.setChallenges(0)
+            container.preferences.saveSearchDraft(SearchDraft(emptyList(), true))
+        }
+    }
+    @get:Rule(order = 1) val compose = createAndroidComposeRule<MainActivity>()
 
     @Before fun awaitReady() {
         if (Build.VERSION.SDK_INT >= 33) {
@@ -21,11 +40,24 @@ class NativeFlowTest {
         }
         compose.waitUntil(15_000) { !compose.activity.application.let { (it as SospdApplication).container.engine.catalog().isEmpty() } }
         compose.waitForIdle()
+        compose.onNodeWithText("图鉴").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("探查").performClick()
+    }
+
+    @After fun stopRemainingTask() {
+        val container = (compose.activity.application as SospdApplication).container
+        if (container.work.value != null) {
+            compose.runOnUiThread { DungeonTaskService.stop(compose.activity) }
+            compose.waitUntil(15_000) { container.work.value == null }
+        }
     }
 
     @Test fun nativeCatalogFindsChineseItem() {
         compose.onNodeWithText("Seeds of SPD").assertIsDisplayed()
+        compose.onAllNodesWithText("最近探查").assertCountEquals(0)
         compose.onNodeWithText("图鉴").performClick()
+        compose.onAllNodesWithText("搜索中文物品或房间名称").assertCountEquals(0)
         compose.onNode(hasSetTextAction()).performTextInput("神射")
         compose.onNodeWithText("神射之戒").assertIsDisplayed().performClick()
         compose.onNodeWithText("关闭").assertIsDisplayed()
@@ -66,9 +98,75 @@ class NativeFlowTest {
 
     @Test fun dailyRunUsesDate() {
         compose.onNodeWithText("每日挑战").performClick()
+        compose.onNodeWithText(java.time.LocalDate.now(io.github.sospd.domain.SeedCodec.DAILY_ZONE).toString()).assertIsDisplayed()
+        compose.onAllNodesWithText("日期遵循", substring = true).assertCountEquals(0)
         compose.onNodeWithText("开始探查").performClick()
         compose.waitUntil(20_000) { compose.onAllNodesWithText("探查结果").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("每日挑战", substring = true).assertIsDisplayed()
+    }
+
+    @Test fun reportedSeed666CanBeScoutedTo24FloorsFromTheUi() {
+        val container = (compose.activity.application as SospdApplication).container
+        runBlocking { container.preferences.setFloors(24) }
+        compose.waitUntil(10_000) { compose.onAllNodesWithText("探查至 24 层 · 无挑战").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasSetTextAction()).performTextReplacement("666")
+        compose.onNodeWithText("开始探查").performClick()
+        compose.waitUntil(20_000) { compose.onAllNodesWithText("探查结果").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("4.0.2 · 24 层 · 无挑战").assertIsDisplayed()
+    }
+
+    @Test fun wealthPlusThreeSearchCrossesReportedSeedAndCanResume() {
+        val container = (compose.activity.application as SospdApplication).container
+        val request = SearchRequest(listOf(Condition("items.rings.RingOfWealth", Category.RING, 3)), true, 24, 0)
+        val row = TaskEntity().apply {
+            id = java.util.UUID.randomUUID().toString(); kind = "SEARCH"; status = "INTERRUPTED"
+            requestJson = container.gson.toJson(request); label = "财富戒指 +3"
+            startSeed = 666; nextSeed = 666; startedAt = System.currentTimeMillis(); updatedAt = startedAt
+        }
+        runBlocking(Dispatchers.IO) { container.tasks.save(row) }
+        compose.runOnUiThread { DungeonTaskService.resume(compose.activity, row.id) }
+        compose.waitUntil(20_000) {
+            (container.work.value?.count ?: 0) >= 3 || runBlocking(Dispatchers.IO) {
+                container.tasks.find(row.id)?.status == "FOUND"
+            }
+        }
+        if (container.work.value != null) {
+            compose.onNodeWithText("停止").performClick()
+            compose.waitUntil(15_000) { container.work.value == null }
+            val stopped = runBlocking(Dispatchers.IO) { container.tasks.find(row.id)!! }
+            Assert.assertEquals("CANCELLED", stopped.status)
+            Assert.assertTrue(stopped.searchedCount >= 3)
+            compose.runOnUiThread { DungeonTaskService.resume(compose.activity, row.id) }
+            compose.waitUntil(20_000) { (container.work.value?.count ?: 0) > stopped.searchedCount || runBlocking(Dispatchers.IO) { container.tasks.find(row.id)?.status == "FOUND" } }
+        }
+        val current = runBlocking(Dispatchers.IO) { container.tasks.find(row.id)!! }
+        Assert.assertNotEquals("FAILED", current.status)
+        if (current.status == "FOUND") {
+            Assert.assertTrue(ConditionMatcher.matches(container.gson.fromJson(current.reportJson, DungeonReport::class.java), request))
+        }
+    }
+
+    @Test fun successfulSearchRetainsConditionsUntilManualRemovalAndReloadsThem() {
+        val container = (compose.activity.application as SospdApplication).container
+        compose.onNodeWithText("找种").performClick()
+        compose.onNodeWithText("任一满足").performClick()
+        compose.onNodeWithText("添加").performClick()
+        compose.onNode(hasSetTextAction()).performTextInput("治疗药剂")
+        compose.onNode(hasText("治疗药剂") and !hasSetTextAction()).performClick()
+        compose.onNodeWithText("确定").performClick()
+        compose.onNodeWithText("开始找种").performClick()
+        compose.waitUntil(30_000) { compose.onAllNodesWithText("探查结果").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription("返回").performClick()
+        compose.onNodeWithText("治疗药剂").assertIsDisplayed()
+        val restored = AppViewModel(compose.activity.application)
+        val store = ViewModelStore().apply { put("restored", restored) }
+        try {
+            compose.waitUntil(15_000) { !restored.state.value.loading }
+            Assert.assertEquals("items.potions.PotionOfHealing", restored.state.value.conditions.single().id())
+            Assert.assertFalse(restored.state.value.matchAll)
+        } finally { store.clear() }
+        compose.onNodeWithContentDescription("移除条件").performClick()
+        compose.waitUntil(10_000) { runBlocking { container.preferences.searchDraft.first().conditions().isEmpty() } }
     }
 
     @Test fun searchContinuesWithActivityStoppedAndCanBeCancelled() {

@@ -25,13 +25,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.sospd.data.ThemeMode
 import io.github.sospd.domain.Models.*
+import io.github.sospd.domain.SeedCodec
 import java.time.*
 
 @Composable
 fun ScoutPage(state: AppUiState, idle: Boolean, model: AppViewModel) {
     var input by rememberSaveable { mutableStateOf("") }
     var daily by rememberSaveable { mutableStateOf(false) }
-    var date by rememberSaveable { mutableStateOf(LocalDate.now(ZoneOffset.UTC).toString()) }
+    var date by rememberSaveable { mutableStateOf(LocalDate.now(SeedCodec.DAILY_ZONE).toString()) }
     var showDate by remember { mutableStateOf(false) }
     val context = LocalContext.current
     LazyColumn(Modifier.widthIn(max = 760.dp).fillMaxSize(), contentPadding = PaddingValues(20.dp),
@@ -66,24 +67,11 @@ fun ScoutPage(state: AppUiState, idle: Boolean, model: AppViewModel) {
                     OutlinedButton({ showDate = true }, Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp)) {
                         Icon(Icons.Outlined.CalendarMonth, null); Spacer(Modifier.width(12.dp)); Text(date)
                     }
-                    Text("日期遵循游戏的协调世界时（UTC）日切规则。", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 ConfigurationSummary(state)
                 Button({ model.startScout(input, if (daily) date else null) }, enabled = idle && (daily || input.isNotBlank()),
                     modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Icon(Icons.Outlined.TravelExplore, null, Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text("开始探查")
-                }
-            }
-        }
-        val recent = state.history.filter { it.reportJson != null }.take(3)
-        if (recent.isNotEmpty()) {
-            item { SectionTitle("最近探查") }
-            items(recent, key = { it.id }) { row ->
-                Card(onClick = { model.openReport(row) }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-                    ListItem(headlineContent = { Text(row.label) }, supportingContent = { Text("${duration(row.elapsedMillis)} · 点击查看") },
-                        leadingContent = { Icon(Icons.Outlined.History, null) }, trailingContent = { Icon(Icons.Outlined.ChevronRight, null) },
-                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow))
                 }
             }
         }

@@ -49,7 +49,7 @@ fun CatalogBrowser(catalog: List<CatalogEntry>, modifier: Modifier = Modifier, o
         catalog.filter { (categoryName == null || it.category().name == categoryName) && (query.isBlank() || it.name().contains(query.trim())) }
     }
     Column(modifier.fillMaxWidth()) {
-        OutlinedTextField(query, { query = it }, placeholder = { Text("搜索中文物品或房间名称") }, singleLine = true,
+        OutlinedTextField(query, { query = it }, placeholder = { Text("搜索物品或房间名称") }, singleLine = true,
             leadingIcon = { Icon(Icons.Outlined.Search, null) }, shape = MaterialTheme.shapes.extraLarge,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp))
         LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

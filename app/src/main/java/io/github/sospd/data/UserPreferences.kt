@@ -6,6 +6,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import io.github.sospd.domain.Models.Category
+import io.github.sospd.domain.Models.SearchDraft
+import com.google.gson.Gson
 import java.io.IOException
 
 private val Context.preferences by preferencesDataStore("settings")
@@ -18,11 +20,19 @@ data class UserPreferences(
     val hiddenCategories: Set<String> = emptySet(),
 )
 
-class PreferencesRepository(private val context: Context) {
+class PreferencesRepository(private val context: Context, private val gson: Gson = Gson()) {
     private val floors = intPreferencesKey("floors")
     private val challenges = intPreferencesKey("challenges")
     private val theme = stringPreferencesKey("theme")
     private val hidden = stringSetPreferencesKey("hidden_categories")
+    private val draft = stringPreferencesKey("search_draft")
+    val searchDraft = context.preferences.data.catch {
+        if (it is IOException) emit(emptyPreferences()) else throw it
+    }.map { values ->
+        runCatching { values[draft]?.let { gson.fromJson(it, SearchDraft::class.java) } }.getOrNull()
+            ?: SearchDraft(emptyList(), true)
+    }
+    suspend fun saveSearchDraft(value: SearchDraft) { context.preferences.edit { it[draft] = gson.toJson(value) } }
     val settings = context.preferences.data.catch {
         if (it is IOException) emit(emptyPreferences()) else throw it
     }.map {

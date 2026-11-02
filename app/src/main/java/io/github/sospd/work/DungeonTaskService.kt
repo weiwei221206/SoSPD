@@ -69,7 +69,7 @@ class DungeonTaskService : Service() {
                     val kind = if (intent?.action == ACTION_SEARCH) "SEARCH" else "SCOUT"
                     val json = intent?.getStringExtra(EXTRA_REQUEST) ?: error("缺少计算请求")
                     TaskEntity().apply {
-                        id = UUID.randomUUID().toString(); this.kind = kind; requestJson = json
+                        id = intent?.getStringExtra(EXTRA_ID) ?: UUID.randomUUID().toString(); this.kind = kind; requestJson = json
                         startedAt = System.currentTimeMillis()
                         if (kind == "SEARCH") {
                             val request = container.gson.fromJson(json, SearchRequest::class.java)
@@ -84,6 +84,10 @@ class DungeonTaskService : Service() {
                 }
                 row.status = "RUNNING"; row.updatedAt = System.currentTimeMillis(); row.error = null
                 container.tasks.save(row); container.historyChanged()
+                val depth = if (row.kind == "SEARCH") container.gson.fromJson(row.requestJson, SearchRequest::class.java).floors()
+                    else container.gson.fromJson(row.requestJson, ScoutRequest::class.java).floors()
+                container.work.value = WorkState(row.id, row.kind == "SEARCH", row.searchedCount,
+                    totalFloors = depth, elapsedMillis = row.elapsedMillis)
                 if (row.kind == "SEARCH") search(row) else scout(row)
             } catch (_: java.util.concurrent.CancellationException) {
                 row?.status = "CANCELLED"
@@ -94,13 +98,18 @@ class DungeonTaskService : Service() {
             } finally {
                 withContext(NonCancellable + Dispatchers.IO) {
                     row?.let { it.updatedAt = System.currentTimeMillis(); container.tasks.save(it) }
-                    container.historyChanged()
-                    container.work.value = null
-                    wakeLock?.let { if (it.isHeld) it.release() }
-                    wakeLock = null
-                    stopForeground(STOP_FOREGROUND_REMOVE)
-                    row?.takeIf { it.status == "FOUND" }?.let { completed(it) }
-                    stopSelf()
+                    withContext(Dispatchers.Main.immediate) {
+                        container.historyChanged()
+                        wakeLock?.let { if (it.isHeld) it.release() }
+                        wakeLock = null
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                        row?.takeIf { it.status == "FOUND" }?.let {
+                            runCatching { completed(it) }.onFailure { error -> Log.w("SoSPD", "结果通知未能显示", error) }
+                        }
+                        task = null
+                        stopSelf()
+                        container.work.value = null
+                    }
                 }
             }
         }
@@ -189,13 +198,16 @@ class DungeonTaskService : Service() {
         private const val EXTRA_REQUEST = "request"
         fun scout(context: Context, request: ScoutRequest) = start(context, ACTION_SCOUT, request)
         fun search(context: Context, request: SearchRequest) = start(context, ACTION_SEARCH, request)
-        private fun start(context: Context, action: String, request: Any) {
+        private fun start(context: Context, action: String, request: Any): String {
             val container = (context.applicationContext as SospdApplication).container
+            val id = UUID.randomUUID().toString()
             context.startForegroundService(Intent(context, DungeonTaskService::class.java).setAction(action)
-                .putExtra(EXTRA_REQUEST, container.gson.toJson(request)))
+                .putExtra(EXTRA_ID, id).putExtra(EXTRA_REQUEST, container.gson.toJson(request)))
+            return id
         }
-        fun resume(context: Context, id: String) {
+        fun resume(context: Context, id: String): String {
             context.startForegroundService(Intent(context, DungeonTaskService::class.java).setAction(ACTION_RESUME).putExtra(EXTRA_ID, id))
+            return id
         }
         fun stop(context: Context) {
             context.startService(Intent(context, DungeonTaskService::class.java).setAction(ACTION_STOP))
