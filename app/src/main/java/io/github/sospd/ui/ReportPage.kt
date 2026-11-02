@@ -3,8 +3,6 @@ package io.github.sospd.ui
 
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Context
-import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -34,22 +32,18 @@ fun ReportPage(report: DungeonReport, task: TaskEntity?, hidden: Set<String>, ca
     val visible = floor.items().filter { it.category().name !in hidden && (categoryName == null || it.category().name == categoryName) }
     Column(Modifier.widthIn(max = 900.dp).fillMaxSize()) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(report.dailyDate()?.let { "$it · 每日挑战" } ?: report.seedCode(),
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(report.dailyDate()?.let { "$it · 每日挑战" } ?: report.seedCode(),
                 style = MaterialTheme.typography.headlineSmall,
                 fontFamily = if (report.dailyDate() == null) FontFamily.Monospace else FontFamily.Default,
-                fontWeight = FontWeight.SemiBold)
+                fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                if (report.dailyDate() == null) IconButton({
+                    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("地牢种子", report.seedCode()))
+                }) { Icon(Icons.Outlined.ContentCopy, "复制种子") }
+            }
             Text("4.0.2 · ${report.floors().size} 层 · ${if (report.challenges() == 0) "无挑战" else "${Integer.bitCount(report.challenges())} 项挑战"}",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (report.dailyDate() == null) OutlinedButton({
-                    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("地牢种子", report.seedCode()))
-                }) { Icon(Icons.Outlined.ContentCopy, null, Modifier.size(16.dp)); Spacer(Modifier.width(6.dp)); Text("复制种子") }
-                OutlinedButton({
-                    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, exportReport(report))
-                    context.startActivity(Intent.createChooser(send, "分享探查结果"))
-                }) { Icon(Icons.Outlined.Share, null, Modifier.size(16.dp)); Spacer(Modifier.width(6.dp)); Text("分享") }
-                if (task?.kind == "SEARCH" && task.status == "FOUND") TextButton({ resume(task) }, enabled = idle) { Text("继续找种") }
-            }
+            if (task?.kind == "SEARCH" && task.status == "FOUND") TextButton({ resume(task) }, enabled = idle) { Text("继续找种") }
         }
         ScrollableTabRow(selectedTabIndex = floorIndex.coerceIn(0, report.floors().lastIndex), edgePadding = 20.dp,
             containerColor = MaterialTheme.colorScheme.background) {
@@ -105,23 +99,5 @@ fun ReportPage(report: DungeonReport, task: TaskEntity?, hidden: Set<String>, ca
 private fun EmptyResult(text: String) {
     Box(Modifier.fillMaxWidth().padding(vertical = 36.dp), contentAlignment = Alignment.Center) {
         Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-private fun exportReport(report: DungeonReport) = buildString {
-    appendLine("Seeds of SPD")
-    appendLine("游戏版本：4.0.2")
-    appendLine(report.dailyDate()?.let { "每日挑战：$it（UTC）" } ?: "种子：${report.seedCode()}")
-    val challenges = challengeOptions.filter { report.challenges() and it.mask != 0 }.joinToString("、") { it.name }
-    appendLine("挑战：${challenges.ifEmpty { "无" }}")
-    report.floors().forEach { floor ->
-        appendLine(); appendLine("第 ${floor.depth()} 层 · ${floor.feeling()}")
-        floor.items().forEach { item ->
-            append("• ${item.name()}（${item.source()}${if (item.cursed()) "，诅咒" else ""}）")
-            if (item.appearance().isNotBlank()) append(" · 外观：${item.appearance()}")
-            if (!item.reliable()) append(" · 类型可能变化，不作为确定匹配")
-            appendLine()
-        }
-        if (floor.rooms().isNotEmpty()) appendLine("房间：" + floor.rooms().joinToString("、") { it.name() })
     }
 }

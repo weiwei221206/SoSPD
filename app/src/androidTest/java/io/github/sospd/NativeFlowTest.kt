@@ -42,7 +42,8 @@ class NativeFlowTest {
         compose.waitUntil(20_000) { compose.onAllNodesWithText("探查结果").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("ABC-DEF-GHI").assertIsDisplayed()
         compose.onNodeWithText("1 层").assertIsDisplayed()
-        compose.onNodeWithText("复制种子").performClick()
+        compose.onNodeWithContentDescription("复制种子").performClick()
+        compose.onAllNodesWithText("分享").assertCountEquals(0)
         compose.runOnUiThread {
             Assert.assertEquals("ABC-DEF-GHI", compose.activity.getSystemService(ClipboardManager::class.java)
                 .primaryClip!!.getItemAt(0).text.toString())
