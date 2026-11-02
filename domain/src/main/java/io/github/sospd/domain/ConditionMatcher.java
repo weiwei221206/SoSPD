@@ -14,7 +14,7 @@ public final class ConditionMatcher {
             if (condition.category() == Category.ROOM) {
                 if (floor.rooms().stream().anyMatch(r -> r.id().equals(condition.id()))) return true;
             } else {
-                if (floor.items().stream().anyMatch(i -> i.id().equals(condition.id())
+                if (floor.items().stream().anyMatch(i -> i.reliable() && i.id().equals(condition.id())
                         && (condition.minimumLevel() == null || i.level() >= condition.minimumLevel()))) return true;
             }
         }

@@ -8,6 +8,9 @@ import com.shatteredpixel.shatteredpixeldungeon.items.*;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.Armor;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.Artifact;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
+import com.shatteredpixel.shatteredpixeldungeon.items.journal.DocumentPage;
+import com.shatteredpixel.shatteredpixeldungeon.items.journal.Guidebook;
+import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.Ring;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.*;
@@ -26,6 +29,7 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntConsumer;
+import java.util.function.Supplier;
 
 /** All access to upstream global state is serialized, including catalog creation. */
 public final class DungeonEngine {
@@ -35,63 +39,92 @@ public final class DungeonEngine {
     public DungeonEngine(File storage) { HeadlessRuntime.initialize(storage); }
 
     public DungeonReport scout(ScoutRequest request, BooleanSupplier cancelled, IntConsumer progress) {
+        return scout(request, cancelled, progress, level -> {});
+    }
+
+    // Package-private observer for independent verification; the application receives only immutable DTOs.
+    DungeonReport scout(ScoutRequest request, BooleanSupplier cancelled, IntConsumer progress,
+                        java.util.function.Consumer<Level> observer) {
         synchronized (LOCK) {
             checkCancelled(cancelled);
             initializeRun(request);
-            List<Floor> floors = new ArrayList<>();
-            // Match the upstream toolkit's pre-floor catalyst preview; never tie generation to display filters.
-            List<FoundItem> trinkets = rollTrinkets();
+            List<PendingFloor> generated = new ArrayList<>();
             boolean ghostLogged = false, wandmakerLogged = false, impLogged = false;
             for (int depth = 1; depth <= request.floors(); depth++) {
                 checkCancelled(cancelled);
                 RegularLevel.roomList = null;
                 Level level = Dungeon.newLevel();
-                List<FoundItem> items = new ArrayList<>();
-                if (depth == 1) items.addAll(trinkets);
+                observer.accept(level);
+                List<Supplier<FoundItem>> items = new ArrayList<>();
                 for (Heap heap : level.heaps.valueList()) {
-                    for (Item item : heap.items) items.add(snapshot(item, heapLabel(heap.type)));
+                    for (Item item : heap.items) {
+                        if (item instanceof DocumentPage || item instanceof Guidebook) continue;
+                        boolean reliable = isReliableLoot(level, heap, item);
+                        String source = reliable ? heapLabel(heap.type) : item instanceof Bag
+                                ? "商店 · 背包类型随行囊变化" : "隐藏房间 · 类型可能变化";
+                        items.add(() -> snapshot(item, source, reliable));
+                    }
                 }
                 for (Mob mob : level.mobs) {
                     if (mob instanceof ArmoredStatue statue) {
-                        items.add(snapshot(statue.armor, "石像"));
-                        items.add(snapshot(statue.weapon, "石像"));
+                        items.add(defer(statue.armor, "石像"));
+                        items.add(defer(statue.weapon, "石像"));
                     } else if (mob instanceof Statue statue) {
-                        items.add(snapshot(statue.weapon, "石像"));
+                        items.add(defer(statue.weapon, "石像"));
                     } else if (mob instanceof Mimic mimic) {
-                        for (Item item : mimic.items) items.add(snapshot(item,
+                        for (Item item : mimic.items) items.add(defer(item,
                                 mimic instanceof CrystalMimic ? "水晶宝箱怪" : mimic instanceof GoldenMimic ? "金色宝箱怪" : "宝箱怪"));
                     }
                 }
-                if (level.sacrificialFireItem != null) items.add(snapshot(level.sacrificialFireItem, "献祭之火"));
+                if (level.sacrificialFireItem != null) items.add(defer(level.sacrificialFireItem, "献祭之火"));
                 if (!ghostLogged && Ghost.Quest.armor != null) {
-                    items.add(snapshot(Ghost.Quest.armor.inscribe(Ghost.Quest.glyph), "悲伤幽灵任务"));
-                    items.add(snapshot(Ghost.Quest.weapon.enchant(Ghost.Quest.enchant), "悲伤幽灵任务"));
+                    Armor armor = Ghost.Quest.armor; Armor.Glyph glyph = Ghost.Quest.glyph;
+                    Weapon weapon = Ghost.Quest.weapon; Weapon.Enchantment enchant = Ghost.Quest.enchant;
+                    items.add(() -> snapshot(((Armor) armor.duplicate()).inscribe(glyph), "悲伤幽灵任务"));
+                    items.add(() -> snapshot(((Weapon) weapon.duplicate()).enchant(enchant), "悲伤幽灵任务"));
                     ghostLogged = true;
                 }
                 if (!wandmakerLogged && Wandmaker.Quest.wand1 != null) {
-                    items.add(snapshot(Wandmaker.Quest.wand1, "老杖匠任务"));
-                    items.add(snapshot(Wandmaker.Quest.wand2, "老杖匠任务"));
+                    items.add(defer(Wandmaker.Quest.wand1, "老杖匠任务"));
+                    items.add(defer(Wandmaker.Quest.wand2, "老杖匠任务"));
                     wandmakerLogged = true;
                 }
                 if (!impLogged && (Imp.Quest.reward != null || !Imp.Quest.rewardOptions.isEmpty())) {
-                    if (Imp.Quest.reward != null) items.add(snapshot(Imp.Quest.reward, "野心勃勃的小恶魔任务"));
-                    for (Item item : Imp.Quest.rewardOptions) items.add(snapshot(item, "小恶魔可选奖励"));
+                    if (Imp.Quest.reward != null) items.add(defer(Imp.Quest.reward, "野心勃勃的小恶魔任务"));
+                    for (Item item : Imp.Quest.rewardOptions) items.add(defer(item, "小恶魔可选奖励"));
                     impLogged = true;
                 }
                 List<FoundRoom> rooms = new ArrayList<>();
                 if (level instanceof RegularLevel && RegularLevel.roomList != null) {
                     for (Room room : RegularLevel.roomList) rooms.add(RoomLabels.snapshot(room));
                 }
-                items.sort(Comparator.comparing((FoundItem i) -> i.category().ordinal()).thenComparing(FoundItem::name));
                 rooms.sort(Comparator.comparing(FoundRoom::name));
-                floors.add(new Floor(depth, feeling(level, depth), List.copyOf(items), List.copyOf(rooms)));
+                generated.add(new PendingFloor(depth, feeling(level, depth), items, List.copyOf(rooms)));
                 Dungeon.depth++;
                 progress.accept(depth);
             }
+            // Identification, descriptions and previews may change upstream state. Extract only after every floor is generated.
+            List<Floor> floors = new ArrayList<>();
+            for (PendingFloor floor : generated) {
+                checkCancelled(cancelled);
+                List<FoundItem> items = new ArrayList<>();
+                for (Supplier<FoundItem> supplier : floor.items()) items.add(supplier.get());
+                items.sort(Comparator.comparing((FoundItem i) -> i.category().ordinal()).thenComparing(FoundItem::name));
+                floors.add(new Floor(floor.depth(), floor.feeling(), List.copyOf(items), floor.rooms()));
+            }
+            // Preview catalysts in a fresh isolated run; they must not perturb actual floor generation.
+            initializeRun(request);
+            List<FoundItem> firstItems = new ArrayList<>(floors.get(0).items());
+            firstItems.addAll(rollTrinkets());
+            Floor first = floors.get(0);
+            floors.set(0, new Floor(first.depth(), first.feeling(), List.copyOf(firstItems), first.rooms()));
             return new DungeonReport(request.input(), request.dailyDate() == null ? SeedCodec.toCode(Dungeon.seed) : "每日挑战",
                     Dungeon.seed, request.dailyDate(), request.challenges(), List.copyOf(floors));
         }
     }
+
+    private record PendingFloor(int depth, String feeling, List<Supplier<FoundItem>> items, List<FoundRoom> rooms) {}
+    private static Supplier<FoundItem> defer(Item item, String source) { return () -> snapshot(item, source); }
 
     public List<CatalogEntry> catalog() {
         synchronized (LOCK) {
@@ -103,6 +136,7 @@ public final class DungeonEngine {
                     if (!Item.class.isAssignableFrom(cls) || Modifier.isAbstract(cls.getModifiers())) continue;
                     try {
                         Item item = ((Item) cls.getDeclaredConstructor().newInstance()).identify();
+                        if (item instanceof DocumentPage || item instanceof Guidebook) continue;
                         String name = clean(item.name());
                         if (name.contains(Messages.NO_TEXT_FOUND)) throw new IllegalStateException("物品名称缺少中文翻译：" + id(cls));
                         String description = clean(item.desc());
@@ -141,11 +175,27 @@ public final class DungeonEngine {
     }
 
     private static FoundItem snapshot(Item item, String source) {
+        return snapshot(item, source, true);
+    }
+
+    private static FoundItem snapshot(Item item, String source, boolean reliable) {
         item.identify();
         String appearance = item instanceof Potion || item instanceof Scroll || item instanceof Ring
                 ? clean(item.anonymousName()) : "";
         return new FoundItem(id(item.getClass()), clean(item.title()), category(item), item.level(), item.cursed,
-                source, appearance, item.image);
+                source, appearance, item.image, reliable);
+    }
+
+    private static boolean isReliableLoot(Level level, Heap heap, Item item) {
+        if (heap.type == Heap.Type.FOR_SALE && item instanceof Bag) return false;
+        if (!(level instanceof RegularLevel) || RegularLevel.roomList == null) return true;
+        int x = heap.pos % level.width(), y = heap.pos / level.width();
+        for (Room room : RegularLevel.roomList) {
+            if (x <= room.left || x >= room.right || y <= room.top || y >= room.bottom) continue;
+            if (item instanceof Potion && room.getClass().getSimpleName().equals("SecretLaboratoryRoom")) return false;
+            if (item instanceof Scroll && room.getClass().getSimpleName().equals("SecretLibraryRoom")) return false;
+        }
+        return true;
     }
 
     static String id(Class<?> cls) { return cls.getName().replace("com.shatteredpixel.shatteredpixeldungeon.", ""); }

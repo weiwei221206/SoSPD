@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "SeedsOfSPD"
-include(":app", ":domain", ":engine")
+include(":app", ":domain", ":engine", ":verification")
 

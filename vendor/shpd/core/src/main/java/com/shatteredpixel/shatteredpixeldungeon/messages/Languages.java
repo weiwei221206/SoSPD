@@ -104,7 +104,8 @@ public enum Languages {
 	}
 
 	public static Languages matchCode(String code){
-		return ENGLISH;
+		// SoSPD ships only Simplified Chinese; never select an English runtime locale.
+		return CHI_SMPL;
 	}
 
 }

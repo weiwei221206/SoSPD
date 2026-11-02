@@ -58,6 +58,17 @@ final class HeadlessRuntime {
         Game.version = "4.0.2";
         Game.versionCode = 922;
         Game.realTime = System.currentTimeMillis();
+        SPDSettings.intro(false);
+        com.shatteredpixel.shatteredpixeldungeon.journal.Journal.loadGlobal();
+        // Seed tools model an experienced profile. Tutorial pages otherwise alter traps and item placement.
+        try {
+            var field = com.shatteredpixel.shatteredpixeldungeon.journal.Document.class.getDeclaredField("pagesStates");
+            field.setAccessible(true);
+            for (var document : com.shatteredpixel.shatteredpixeldungeon.journal.Document.values()) {
+                @SuppressWarnings("unchecked") Map<String, Integer> states = (Map<String, Integer>) field.get(document);
+                states.replaceAll((page, state) -> com.shatteredpixel.shatteredpixeldungeon.journal.Document.READ);
+            }
+        } catch (ReflectiveOperationException e) { throw new IllegalStateException("无法初始化冒险指南状态", e); }
         initialized = true;
     }
 

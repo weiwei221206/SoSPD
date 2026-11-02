@@ -14,7 +14,7 @@ public final class Models {
     public record CatalogEntry(String id, String name, String description, Category category,
                                boolean upgradeable, int image) {}
     public record FoundItem(String id, String name, Category category, int level, boolean cursed,
-                            String source, String appearance, int image) {}
+                            String source, String appearance, int image, boolean reliable) {}
     public record FoundRoom(String id, String name, String type) {}
     public record Floor(int depth, String feeling, List<FoundItem> items, List<FoundRoom> rooms) {}
     public record DungeonReport(String input, String seedCode, long seed, String dailyDate,
