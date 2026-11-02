@@ -6,6 +6,9 @@ import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -16,6 +19,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
 import io.github.sospd.R
 import io.github.sospd.work.WorkState
 import kotlin.math.roundToInt
@@ -102,12 +106,13 @@ val challengeOptions = listOf(
 fun ChallengesDialog(challenges: Int, toggle: (Int) -> Unit, dismiss: () -> Unit) {
     AlertDialog(onDismissRequest = dismiss, title = { Text("挑战设置") },
         text = {
-            Column {
+            Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
                 Text("挑战会影响地牢生成，请与游戏中的设置保持一致。", style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(12.dp))
                 challengeOptions.forEach { option ->
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(challenges and option.mask != 0, { toggle(option.mask) })
+                    Row(Modifier.fillMaxWidth().toggleable(challenges and option.mask != 0,
+                        role = Role.Checkbox, onValueChange = { toggle(option.mask) }), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(challenges and option.mask != 0, null)
                         Text(option.name, style = MaterialTheme.typography.bodyMedium)
                     }
                 }

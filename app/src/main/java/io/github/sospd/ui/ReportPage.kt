@@ -90,6 +90,8 @@ fun ReportPage(report: DungeonReport, task: TaskEntity?, hidden: Set<String>, ca
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 if (item.appearance().isNotBlank()) Text("外观：${item.appearance()}",
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                                if (!item.reliable()) Text("受游戏运行环境影响，不计入确定找种条件",
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                             }
                         }
                     }
@@ -117,6 +119,7 @@ private fun exportReport(report: DungeonReport) = buildString {
         floor.items().forEach { item ->
             append("• ${item.name()}（${item.source()}${if (item.cursed()) "，诅咒" else ""}）")
             if (item.appearance().isNotBlank()) append(" · 外观：${item.appearance()}")
+            if (!item.reliable()) append(" · 类型可能变化，不作为确定匹配")
             appendLine()
         }
         if (floor.rooms().isNotEmpty()) appendLine("房间：" + floor.rooms().joinToString("、") { it.name() })

@@ -36,5 +36,7 @@ public class ChineseResourcesTest {
         assertTrue(report.floors().stream().flatMap(f -> f.items().stream())
                 .noneMatch(i -> i.id().startsWith("items.journal.")));
         assertTrue(engine.catalog().stream().noneMatch(i -> i.id().startsWith("items.journal.")));
+        assertTrue(report.floors().stream().flatMap(f -> f.items().stream())
+                .noneMatch(i -> i.source().equals("商店") && i.id().startsWith("items.bags.")));
     }
 }

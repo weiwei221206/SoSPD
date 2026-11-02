@@ -19,13 +19,13 @@ public final class CompareReports {
             List<String> changed = new ArrayList<>();
             for (int j = 0; j < channels.length; j++) if (!a[j].equals(b[j])) changed.add(channels[j]);
             if (!changed.isEmpty()) mismatches.add(a[0] + " floor " + a[1] + ": " + String.join(", ", changed));
-            if (!a[8].equals(b[8])) variableLoot.add(a[0] + " floor " + a[1] + ": runtime/inventory-dependent secret consumables or shop bags");
+            if (!a[8].equals(b[8])) variableLoot.add(a[0] + " floor " + a[1] + ": runtime-dependent secret laboratory/library consumables");
         }
         Files.write(root.resolve("mismatches.txt"), mismatches, StandardCharsets.UTF_8);
         Files.write(root.resolve("runtime-dependent-loot.txt"), variableLoot, StandardCharsets.UTF_8);
         String summary = "Official v4.0.2 reference: " + expected.size() + " floors; " + (expected.size() / 24)
                 + " cases; challenge masks 0..511; mismatched stable floors: " + mismatches.size()
-                + "; runtime/inventory-dependent loot differences: " + variableLoot.size();
+                + "; runtime-dependent secret-room loot differences: " + variableLoot.size();
         Files.writeString(root.resolve("summary.txt"), summary + "\n", StandardCharsets.UTF_8);
         System.out.println(summary);
         if (!mismatches.isEmpty()) {

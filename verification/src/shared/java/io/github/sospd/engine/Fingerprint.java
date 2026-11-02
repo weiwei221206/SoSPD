@@ -34,7 +34,8 @@ final class Fingerprint {
             for (Heap heap : level.heaps.valueList()) {
                 for (Item item : heap.items) {
                     if (item instanceof DocumentPage || item instanceof Guidebook) continue;
-                    boolean variable = heap.type == Heap.Type.FOR_SALE && item instanceof Bag;
+                    if (heap.type == Heap.Type.FOR_SALE && item instanceof Bag) continue;
+                    boolean variable = false;
                     int x = heap.pos % level.width(), y = heap.pos / level.width();
                     for (Room room : generatedRooms) {
                         if (x <= room.left || x >= room.right || y <= room.top || y >= room.bottom) continue;

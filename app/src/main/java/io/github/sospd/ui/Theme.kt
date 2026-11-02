@@ -10,20 +10,22 @@ import androidx.core.view.WindowCompat
 import io.github.sospd.data.ThemeMode
 
 private val Light = lightColorScheme(
-    primary = Color(0xFF3C694E), onPrimary = Color.White,
-    primaryContainer = Color(0xFFD8EBD5), onPrimaryContainer = Color(0xFF173B26),
-    secondary = Color(0xFF725D35), secondaryContainer = Color(0xFFF2E4C1),
-    tertiary = Color(0xFF426570), background = Color(0xFFF7F9F2), surface = Color(0xFFF7F9F2),
-    surfaceContainerLow = Color(0xFFF0F3EA), surfaceContainer = Color(0xFFEAEEE3),
-    surfaceContainerHigh = Color(0xFFE5EADF), outlineVariant = Color(0xFFD3DCCD),
+    primary = Color(0xFF386784), onPrimary = Color.White,
+    primaryContainer = Color(0xFFCDE6F8), onPrimaryContainer = Color(0xFF10374E),
+    secondary = Color(0xFF4B6579), secondaryContainer = Color(0xFFD5E9F8),
+    onSecondaryContainer = Color(0xFF17394F), tertiary = Color(0xFF526B8C),
+    background = Color(0xFFF7FAFE), surface = Color(0xFFF7FAFE),
+    surfaceContainerLow = Color(0xFFEDF4FB), surfaceContainer = Color(0xFFDCEAF6),
+    surfaceContainerHigh = Color(0xFFE6F0F9), outlineVariant = Color(0xFFC9DCEB),
 )
 private val Dark = darkColorScheme(
-    primary = Color(0xFFACD1AC), onPrimary = Color(0xFF163B25),
-    primaryContainer = Color(0xFF2B5139), onPrimaryContainer = Color(0xFFD8EBD5),
-    secondary = Color(0xFFD9C493), secondaryContainer = Color(0xFF544523),
-    background = Color(0xFF111710), surface = Color(0xFF111710),
-    surfaceContainerLow = Color(0xFF192018), surfaceContainer = Color(0xFF1D241C),
-    surfaceContainerHigh = Color(0xFF282F26), outlineVariant = Color(0xFF424C40),
+    primary = Color(0xFFA5CFF0), onPrimary = Color(0xFF09334D),
+    primaryContainer = Color(0xFF244E69), onPrimaryContainer = Color(0xFFD0E7F9),
+    secondary = Color(0xFFB2CCDF), secondaryContainer = Color(0xFF304E64),
+    onSecondaryContainer = Color(0xFFD0E6F7),
+    background = Color(0xFF101820), surface = Color(0xFF101820),
+    surfaceContainerLow = Color(0xFF17232E), surfaceContainer = Color(0xFF203547),
+    surfaceContainerHigh = Color(0xFF1B2D3C), outlineVariant = Color(0xFF3C5366),
 )
 
 @Composable

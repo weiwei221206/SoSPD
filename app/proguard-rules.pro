@@ -4,4 +4,11 @@
 -keepclassmembers class * implements com.watabou.utils.Bundlable { *; }
 -keep class io.github.sospd.domain.Models$* { *; }
 -keepattributes Signature,RuntimeVisibleAnnotations,AnnotationDefault,Record
+-keepclassmembers class com.shatteredpixel.shatteredpixeldungeon.journal.Document {
+    java.util.LinkedHashMap pagesStates;
+}
+# The headless bridge dispatches these Java Proxy calls by their interface method names.
+-keep interface com.badlogic.gdx.Application { *; }
+-keep interface com.badlogic.gdx.Files { *; }
+-keep interface com.badlogic.gdx.Input { *; }
 

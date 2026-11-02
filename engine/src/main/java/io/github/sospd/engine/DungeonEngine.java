@@ -59,9 +59,9 @@ public final class DungeonEngine {
                 for (Heap heap : level.heaps.valueList()) {
                     for (Item item : heap.items) {
                         if (item instanceof DocumentPage || item instanceof Guidebook) continue;
+                        if (heap.type == Heap.Type.FOR_SALE && item instanceof Bag) continue;
                         boolean reliable = isReliableLoot(level, heap, item);
-                        String source = reliable ? heapLabel(heap.type) : item instanceof Bag
-                                ? "商店 · 背包类型随行囊变化" : "隐藏房间 · 类型可能变化";
+                        String source = reliable ? heapLabel(heap.type) : "隐藏房间 · 类型可能变化";
                         items.add(() -> snapshot(item, source, reliable));
                     }
                 }
@@ -137,6 +137,7 @@ public final class DungeonEngine {
                     try {
                         Item item = ((Item) cls.getDeclaredConstructor().newInstance()).identify();
                         if (item instanceof DocumentPage || item instanceof Guidebook) continue;
+                        if (item instanceof Bag) continue;
                         String name = clean(item.name());
                         if (name.contains(Messages.NO_TEXT_FOUND)) throw new IllegalStateException("物品名称缺少中文翻译：" + id(cls));
                         String description = clean(item.desc());
@@ -187,7 +188,6 @@ public final class DungeonEngine {
     }
 
     private static boolean isReliableLoot(Level level, Heap heap, Item item) {
-        if (heap.type == Heap.Type.FOR_SALE && item instanceof Bag) return false;
         if (!(level instanceof RegularLevel) || RegularLevel.roomList == null) return true;
         int x = heap.pos % level.width(), y = heap.pos / level.width();
         for (Room room : RegularLevel.roomList) {

@@ -7,10 +7,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,6 +32,7 @@ fun SospdApp(model: AppViewModel) {
     var page by rememberSaveable { mutableStateOf(Page.SCOUT) }
     var showHistory by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
+    val pageStates = rememberSaveableStateHolder()
     LaunchedEffect(state.error) {
         state.error?.let { snackbar.showSnackbar(it); model.clearError() }
     }
@@ -46,7 +49,7 @@ fun SospdApp(model: AppViewModel) {
                         SuggestionChip({}, { Text("4.0.2") }, enabled = false)
                         IconButton({ showHistory = true }) { Icon(Icons.Outlined.History, "最近记录") }
                     }
-                }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background))
+                }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh))
             },
             bottomBar = {
                 if (state.report == null) NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
@@ -55,7 +58,7 @@ fun SospdApp(model: AppViewModel) {
                             Icon(when (destination) {
                                 Page.SCOUT -> Icons.Outlined.TravelExplore
                                 Page.SEARCH -> Icons.Outlined.AutoAwesome
-                                Page.CATALOG -> Icons.Outlined.MenuBook
+                                Page.CATALOG -> Icons.AutoMirrored.Outlined.MenuBook
                                 Page.SETTINGS -> Icons.Outlined.Settings
                             }, null)
                         }, label = { Text(destination.title) })
@@ -72,12 +75,12 @@ fun SospdApp(model: AppViewModel) {
                 if (state.report != null) {
                     ReportPage(state.report!!, state.reportTask, state.settings.hiddenCategories,
                         state.catalog, work == null, model::resume)
-                } else when (page) {
+                } else pageStates.SaveableStateProvider(page.name) { when (page) {
                     Page.SCOUT -> ScoutPage(state, work == null, model)
                     Page.SEARCH -> SearchPage(state, work == null, model)
                     Page.CATALOG -> CatalogPage(state.catalog, state.loading)
                     Page.SETTINGS -> SettingsPage(state, model)
-                }
+                } }
             }
         }
         if (showHistory) ModalBottomSheet(onDismissRequest = { showHistory = false }) {
