@@ -1,6 +1,12 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+val releaseCredentialsFile = rootProject.file(".signing/signing.properties")
+val releaseCredentials = Properties().apply {
+    if (releaseCredentialsFile.isFile) releaseCredentialsFile.inputStream().use { load(it) }
 }
 android {
     namespace = "io.github.sospd"
@@ -21,8 +27,20 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    signingConfigs {
+        if (releaseCredentialsFile.isFile) {
+            create("sospdRelease") {
+                storeFile = rootProject.file(".signing/${releaseCredentials.getProperty("storeFile")}")
+                storePassword = releaseCredentials.getProperty("storePassword")
+                keyAlias = releaseCredentials.getProperty("keyAlias")
+                keyPassword = releaseCredentials.getProperty("keyPassword")
+                storeType = "PKCS12"
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("sospdRelease")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

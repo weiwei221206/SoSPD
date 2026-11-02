@@ -26,11 +26,12 @@ Seeds of SPD / SoSPD
 - 官方对照: .\gradlew.bat :verification:verifyOfficial
 - 安卓流程: .\gradlew.bat :app:connectedDebugAndroidTest
 - 检查: .\gradlew.bat :app:lintDebug
-- 生成精简测试签名安装包: .\tools\package-preview.ps1 -SdkRoot <SDK路径>
+- 生成精简固定签名安装包: .\tools\package-release.ps1 -SdkRoot <SDK路径>
 - 本机 SDK、local.properties、构建产物、签名文件、Markdown 文件均被 .gitignore 排除。
 
 交付
-- artifacts/SoSPD-4.0.2-zhcn1.apk：经过 R8 精简和测试签名的可安装 APK。
+- artifacts/SoSPD-4.0.2-zhcn1.apk：经过 R8 精简并使用 SoSPD 固定发布签名的可安装 APK。
 - artifacts/SoSPD-4.0.2-zhcn1.apk.sha256：校验摘要。
 - artifacts/home.png、artifacts/report.png：模拟器实际界面截图。
-- APK 使用本机 Android Debug 证书签名；私钥不纳入 Git。
+- 固定签名私钥与密码保存在 .signing 目录，不纳入 Git；请单独备份整个目录。
+- 公开证书和使用说明位于 signing 目录；后续 Release 构建自动沿用同一签名。

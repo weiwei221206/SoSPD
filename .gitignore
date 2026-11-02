@@ -20,5 +20,8 @@ captures/
 .DS_Store
 Thumbs.db
 *.md
+.signing/
+*.p12
+signing.properties
 
 
