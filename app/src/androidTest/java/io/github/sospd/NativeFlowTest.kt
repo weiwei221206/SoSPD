@@ -115,6 +115,33 @@ class NativeFlowTest {
         compose.onNodeWithText("4.0.2 · 24 层 · 无挑战").assertIsDisplayed()
     }
 
+    @Test fun alternatingDailyAndCustomScoutsKeepSeparateResultsAndQuestFloors() {
+        val container = (compose.activity.application as SospdApplication).container
+        runBlocking { container.preferences.setFloors(24) }
+        compose.waitUntil(10_000) { compose.onAllNodesWithText("探查至 24 层 · 无挑战").fetchSemanticsNodes().isNotEmpty() }
+        fun scout(daily: Boolean): DungeonReport {
+            compose.onNodeWithText(if (daily) "每日挑战" else "指定种子").performClick()
+            if (!daily) compose.onNode(hasSetTextAction()).performTextReplacement("666")
+            compose.onNodeWithText("开始探查").performClick()
+            compose.waitUntil(20_000) { container.work.value == null && compose.onAllNodesWithText("探查结果").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText(if (daily) "${java.time.LocalDate.now()} · 每日挑战" else "AAA-AAA-AZQ").assertIsDisplayed()
+            val row = runBlocking(Dispatchers.IO) { container.tasks.recent().first() }
+            val report = container.gson.fromJson(row.reportJson, DungeonReport::class.java)
+            Assert.assertEquals(if (daily) java.time.LocalDate.now().toString() else null, report.dailyDate())
+            val questFloors = report.floors().filter { f -> f.items().any { it.impQuestReward() } }
+            Assert.assertEquals(1, questFloors.size)
+            Assert.assertTrue(questFloors.single().depth() in 17..19)
+            Assert.assertEquals(6, questFloors.single().items().count { it.impQuestReward() })
+            Assert.assertFalse(report.floors().flatMap { it.items() }.any { it.id() == "items.EnergyCrystal" })
+            compose.onNodeWithContentDescription("返回").performClick()
+            return report
+        }
+        val custom = scout(false)
+        val daily = scout(true)
+        Assert.assertEquals(custom, scout(false))
+        Assert.assertEquals(daily, scout(true))
+    }
+
     @Test fun wealthPlusThreeSearchCrossesReportedSeedAndCanResume() {
         val container = (compose.activity.application as SospdApplication).container
         val request = SearchRequest(listOf(Condition("items.rings.RingOfWealth", Category.RING, 3)), true, 24, 0)
@@ -150,23 +177,36 @@ class NativeFlowTest {
         val container = (compose.activity.application as SospdApplication).container
         compose.onNodeWithText("找种").performClick()
         compose.onNodeWithText("任一满足").performClick()
+        compose.onNodeWithText("排除小恶魔任务").performClick().assertIsOn()
         compose.onNodeWithText("添加").performClick()
         compose.onNode(hasSetTextAction()).performTextInput("治疗药剂")
         compose.onNode(hasText("治疗药剂") and !hasSetTextAction()).performClick()
         compose.onNodeWithText("确定").performClick()
-        compose.onNodeWithText("开始找种").performClick()
+        compose.onNodeWithText("开始找种").performScrollTo().performClick()
         compose.waitUntil(30_000) { compose.onAllNodesWithText("探查结果").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithContentDescription("返回").performClick()
         compose.onNodeWithText("治疗药剂").assertIsDisplayed()
+        compose.onNodeWithText("排除小恶魔任务").assertIsOn()
+        val found = runBlocking(Dispatchers.IO) { container.tasks.recent().first() }
+        Assert.assertTrue(container.gson.fromJson(found.requestJson, SearchRequest::class.java).excludeImpQuest())
         val restored = AppViewModel(compose.activity.application)
         val store = ViewModelStore().apply { put("restored", restored) }
         try {
             compose.waitUntil(15_000) { !restored.state.value.loading }
             Assert.assertEquals("items.potions.PotionOfHealing", restored.state.value.conditions.single().id())
             Assert.assertFalse(restored.state.value.matchAll)
+            Assert.assertTrue(restored.state.value.excludeImpQuest)
         } finally { store.clear() }
         compose.onNodeWithContentDescription("移除条件").performClick()
         compose.waitUntil(10_000) { runBlocking { container.preferences.searchDraft.first().conditions().isEmpty() } }
+    }
+
+    @Test fun olderSavedSearchesLoadWithImpExclusionDisabled() {
+        val gson = (compose.activity.application as SospdApplication).container.gson
+        val legacyConditions = """[{"id":"items.potions.PotionOfHealing","category":"POTION"}]"""
+        Assert.assertFalse(gson.fromJson("""{"conditions":$legacyConditions,"matchAll":true,"floors":4,"challenges":0}""",
+            SearchRequest::class.java).excludeImpQuest())
+        Assert.assertFalse(gson.fromJson("""{"conditions":$legacyConditions,"matchAll":true}""", SearchDraft::class.java).excludeImpQuest())
     }
 
     @Test fun searchContinuesWithActivityStoppedAndCanBeCancelled() {

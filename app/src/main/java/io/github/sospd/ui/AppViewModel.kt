@@ -21,6 +21,7 @@ data class AppUiState(
     val reportTask: TaskEntity? = null,
     val conditions: List<Condition> = emptyList(),
     val matchAll: Boolean = true,
+    val excludeImpQuest: Boolean = false,
     val error: String? = null,
 )
 
@@ -40,7 +41,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 val ids = catalog.map { it.id() }.toSet()
                 mutableState.update { it.copy(catalog = catalog, loading = false,
-                    conditions = draft.conditions().filter { condition -> condition.id() in ids }, matchAll = draft.matchAll()) }
+                    conditions = draft.conditions().filter { condition -> condition.id() in ids }, matchAll = draft.matchAll(),
+                    excludeImpQuest = draft.excludeImpQuest()) }
             } catch (e: Exception) {
                 android.util.Log.e("SoSPD", "图鉴加载失败", e)
                 mutableState.update { it.copy(loading = false, error = "图鉴加载失败，请重新打开应用。") }
@@ -72,7 +74,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (work.value != null) return
         try {
             val s = state.value
-            val request = SearchRequest(s.conditions, s.matchAll, s.settings.floors, s.settings.challenges)
+            val request = SearchRequest(s.conditions, s.matchAll, s.settings.floors, s.settings.challenges, s.excludeImpQuest)
             start(true) { DungeonTaskService.search(getApplication(), request) }
         } catch (e: IllegalArgumentException) { showError(e.message ?: "请检查找种条件") }
     }
@@ -90,6 +92,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun stop() { DungeonTaskService.stop(getApplication()) }
     fun setMatchAll(value: Boolean) { mutableState.update { it.copy(matchAll = value) }; saveDraft() }
+    fun setExcludeImpQuest(value: Boolean) { mutableState.update { it.copy(excludeImpQuest = value) }; saveDraft() }
     fun addCondition(entry: CatalogEntry, minimumLevel: Int?) {
         mutableState.update { s -> s.copy(conditions = s.conditions.filterNot { it.id() == entry.id() }
             + Condition(entry.id(), entry.category(), minimumLevel)) }
@@ -102,7 +105,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun saveDraft() {
         val current = state.value
         container.scope.launch(Dispatchers.Main.immediate) {
-            container.preferences.saveSearchDraft(SearchDraft(current.conditions, current.matchAll))
+            container.preferences.saveSearchDraft(SearchDraft(current.conditions, current.matchAll, current.excludeImpQuest))
         }
     }
     fun openReport(row: TaskEntity) {

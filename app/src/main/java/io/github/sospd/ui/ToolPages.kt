@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -20,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -121,6 +123,15 @@ fun SearchPage(state: AppUiState, idle: Boolean, model: AppViewModel) {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     SegmentedButton(state.matchAll, { model.setMatchAll(true) }, SegmentedButtonDefaults.itemShape(0, 2)) { Text("全部满足") }
                     SegmentedButton(!state.matchAll, { model.setMatchAll(false) }, SegmentedButtonDefaults.itemShape(1, 2)) { Text("任一满足") }
+                }
+                Row(Modifier.fillMaxWidth().toggleable(state.excludeImpQuest, role = Role.Switch,
+                    onValueChange = model::setExcludeImpQuest), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("排除小恶魔任务")
+                        Text("任务奖励不参与找种匹配", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(state.excludeImpQuest, onCheckedChange = null)
                 }
             }
         }

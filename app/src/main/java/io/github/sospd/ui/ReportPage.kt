@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.sospd.data.TaskEntity
 import io.github.sospd.domain.Models.*
+import io.github.sospd.domain.ItemRules
 
 @Composable
 fun ReportPage(report: DungeonReport, task: TaskEntity?, hidden: Set<String>, catalog: List<CatalogEntry>, idle: Boolean,
@@ -29,7 +30,8 @@ fun ReportPage(report: DungeonReport, task: TaskEntity?, hidden: Set<String>, ca
     var rooms by rememberSaveable { mutableStateOf(false) }
     var categoryName by rememberSaveable { mutableStateOf<String?>(null) }
     val floor = report.floors()[floorIndex.coerceIn(0, report.floors().lastIndex)]
-    val visible = floor.items().filter { it.category().name !in hidden && (categoryName == null || it.category().name == categoryName) }
+    val visible = floor.items().filter { !ItemRules.excluded(it.id()) && it.category().name !in hidden
+        && (categoryName == null || it.category().name == categoryName) }
     Column(Modifier.widthIn(max = 900.dp).fillMaxSize()) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

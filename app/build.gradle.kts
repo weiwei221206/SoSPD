@@ -15,7 +15,7 @@ android {
         applicationId = "io.github.sospd"
         minSdk = 29
         targetSdk = 36
-        versionCode = 2
+        versionCode = 3
         versionName = "4.0.2-zhcn1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
