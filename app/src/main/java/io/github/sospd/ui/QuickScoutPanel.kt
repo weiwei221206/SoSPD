@@ -29,7 +29,7 @@ fun QuickScoutPanel(state: AppUiState, idle: Boolean, model: AppViewModel) {
         }, enabled = quick.running || quick.selecting || (idle && state.scanRegion != null), modifier = Modifier.fillMaxWidth()) {
             Text(if (quick.running) "关闭快速探查" else if (quick.selecting) "取消范围设置" else "开启快速探查")
         }
-        Text("沿用上方探查设置。本机识别；首次使用需授予悬浮窗与屏幕识别权限。",
+        Text("沿用上方探查设置，本机识别。需允许悬浮窗；每次开启需授权屏幕捕获，关闭后停止。",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

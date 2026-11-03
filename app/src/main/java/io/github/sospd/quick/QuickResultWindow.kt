@@ -3,6 +3,7 @@ package io.github.sospd.quick
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
 import android.widget.*
@@ -77,7 +78,20 @@ internal class QuickResultWindow(private val context: Context, private val host:
             override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
                 super.onMeasure(widthMeasureSpec, View.MeasureSpec.makeMeasureSpec(limit, View.MeasureSpec.AT_MOST))
             }
-        }.apply { addView(list); isFillViewport = false }
+        }.apply {
+            addView(list)
+            isFillViewport = false
+            isVerticalScrollBarEnabled = true
+            isScrollbarFadingEnabled = false
+            scrollBarStyle = View.SCROLLBARS_INSIDE_INSET
+            scrollBarSize = context.dp(2)
+            verticalScrollbarThumbDrawable = GradientDrawable().apply {
+                setColor(0xBBCCCCCC.toInt()); cornerRadius = context.dp(1).toFloat()
+            }
+            verticalScrollbarTrackDrawable = GradientDrawable().apply {
+                setColor(0x33FFFFFF); cornerRadius = context.dp(1).toFloat()
+            }
+        }
         panel.addView(scroll, LinearLayout.LayoutParams(-1, -2))
         host.show(panel, min(context.dp(200), screen.x - context.dp(16)))
         host.draggable(header)
@@ -114,7 +128,7 @@ internal class QuickResultWindow(private val context: Context, private val host:
             ?: 0f) + context.dp(2)).roundToInt().coerceIn(context.dp(40), context.dp(100))
         val sourcePaint = text("", 10f).paint
         val sourceWidth = ((items.maxOfOrNull { sourcePaint.measureText(detail(it)) } ?: 0f) + context.dp(2)).roundToInt()
-        host.resizeWidth((nameWidth + sourceWidth + context.dp(20)).coerceIn(context.dp(112),
+        host.resizeWidth((nameWidth + sourceWidth + context.dp(20) + (scroll?.verticalScrollbarWidth ?: 0)).coerceIn(context.dp(112),
             min(context.dp(200), context.displaySize().x - context.dp(16))))
         for (item in items) {
             val row = LinearLayout(context).apply { gravity = Gravity.TOP }
