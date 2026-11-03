@@ -29,6 +29,41 @@ public class DungeonEngineTest {
         assertEquals(24, report.floors().size());
         assertEquals(24, report.floors().get(23).depth());
     }
+    @Test public void dailyAndCustomRunsDoNotShareImpRewards() {
+        var engine = engine();
+        com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Imp.Quest.rewardOptions.clear();
+        var request = new ScoutRequest("666", null, 24, 0);
+        var expected = engine.scout(request, () -> false, f -> {});
+        var dailyRequest = new ScoutRequest("", "2026-11-03", 24, 0);
+        var daily = engine.scout(dailyRequest, () -> false, f -> {});
+        assertEquals(expected, engine.scout(request, () -> false, f -> {}));
+        assertEquals(daily, engine.scout(dailyRequest, () -> false, f -> {}));
+    }
+    @Test public void impRewardsBelongToTheQuestFloorAndNeverLeakIntoShortRuns() {
+        var engine = engine();
+        var questFloors = new java.util.ArrayList<Integer>();
+        var report = engine.scout(new ScoutRequest("666", null, 24, 0), () -> false, f -> {}, level -> {
+            if (level.mobs.stream().anyMatch(mob -> mob instanceof com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Imp))
+                questFloors.add(com.shatteredpixel.shatteredpixeldungeon.Dungeon.depth);
+        });
+        assertEquals(1, questFloors.size());
+        var rewards = report.floors().stream().filter(f -> f.items().stream()
+                .anyMatch(i -> i.source().contains("小恶魔"))).toList();
+        assertEquals(questFloors, rewards.stream().map(Floor::depth).toList());
+        assertEquals(6, rewards.get(0).items().stream().filter(FoundItem::impQuestReward).count());
+        var shortRun = engine.scout(new ScoutRequest("666", null, 4, 0), () -> false, f -> {});
+        assertTrue(shortRun.floors().stream().flatMap(f -> f.items().stream()).noneMatch(i -> i.source().contains("小恶魔")));
+    }
+    @Test public void energyCrystalsAreGeneratedNormallyButExcludedFromReportsAndCatalog() {
+        var seenCrystals = new java.util.concurrent.atomic.AtomicInteger();
+        var report = engine().scout(new ScoutRequest("666", null, 24, 0), () -> false, f -> {}, level -> {
+            for (var heap : level.heaps.valueList()) for (var item : heap.items)
+                if (item instanceof com.shatteredpixel.shatteredpixeldungeon.items.EnergyCrystal) seenCrystals.incrementAndGet();
+        });
+        assertTrue(seenCrystals.get() > 0);
+        assertFalse(report.floors().stream().flatMap(f -> f.items().stream()).anyMatch(i -> i.id().equals("items.EnergyCrystal")));
+        assertFalse(engine().catalog().stream().anyMatch(i -> i.id().equals("items.EnergyCrystal")));
+    }
     @Test public void reportedSeed666WorksPastFirstBossAndAtFullDepth() {
         for (int depth : new int[]{4, 5, 6, 24}) {
             assertEquals(depth, engine().scout(new ScoutRequest("666", null, depth, 0), () -> false, f -> {}).floors().size());

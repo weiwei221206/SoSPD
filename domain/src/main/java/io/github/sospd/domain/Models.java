@@ -14,13 +14,19 @@ public final class Models {
     public record CatalogEntry(String id, String name, String description, Category category,
                                boolean upgradeable, int image) {}
     public record FoundItem(String id, String name, Category category, int level, boolean cursed,
-                            String source, String appearance, int image, boolean reliable) {}
+                            String source, String appearance, int image, boolean reliable, boolean impQuestReward) {
+        public FoundItem(String id, String name, Category category, int level, boolean cursed,
+                         String source, String appearance, int image, boolean reliable) {
+            this(id, name, category, level, cursed, source, appearance, image, reliable, false);
+        }
+    }
     public record FoundRoom(String id, String name, String type) {}
     public record Floor(int depth, String feeling, List<FoundItem> items, List<FoundRoom> rooms) {}
     public record DungeonReport(String input, String seedCode, long seed, String dailyDate,
                                 int challenges, List<Floor> floors) {}
     public record Condition(String id, Category category, Integer minimumLevel) {}
-    public record SearchDraft(List<Condition> conditions, boolean matchAll) {
+    public record SearchDraft(List<Condition> conditions, boolean matchAll, boolean excludeImpQuest) {
+        public SearchDraft(List<Condition> conditions, boolean matchAll) { this(conditions, matchAll, false); }
         public SearchDraft {
             conditions = conditions == null ? List.of() : List.copyOf(conditions.stream()
                     .filter(c -> !ItemRules.excluded(c.id())).collect(java.util.stream.Collectors.toList()));
@@ -39,7 +45,10 @@ public final class Models {
             }
         }
     }
-    public record SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges) {
+    public record SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges, boolean excludeImpQuest) {
+        public SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges) {
+            this(conditions, matchAll, floors, challenges, false);
+        }
         public SearchRequest {
             if (conditions == null || conditions.isEmpty()) throw new IllegalArgumentException("请先添加找种条件");
             if (conditions.stream().anyMatch(c -> ItemRules.excluded(c.id()))) throw new IllegalArgumentException("搜索条件包含已排除的物品，请重新选择");

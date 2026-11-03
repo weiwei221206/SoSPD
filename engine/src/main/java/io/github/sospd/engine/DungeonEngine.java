@@ -11,7 +11,6 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
 import com.shatteredpixel.shatteredpixeldungeon.items.journal.DocumentPage;
 import com.shatteredpixel.shatteredpixeldungeon.items.journal.Guidebook;
 import com.shatteredpixel.shatteredpixeldungeon.items.bags.Bag;
-import com.shatteredpixel.shatteredpixeldungeon.items.keys.Key;
 import com.shatteredpixel.shatteredpixeldungeon.items.rings.Ring;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.trinkets.*;
@@ -61,7 +60,7 @@ public final class DungeonEngine {
                 for (Heap heap : level.heaps.valueList()) {
                     for (Item item : heap.items) {
                         if (item instanceof DocumentPage || item instanceof Guidebook) continue;
-                        if (item instanceof Gold || item instanceof Key) continue;
+                        if (ItemRules.excluded(id(item.getClass()))) continue;
                         if (heap.type == Heap.Type.FOR_SALE && item instanceof Bag) continue;
                         boolean reliable = isReliableLoot(level, heap, item);
                         String source = reliable ? heapLabel(heap.type) : "隐藏房间 · 类型可能变化";
@@ -92,9 +91,10 @@ public final class DungeonEngine {
                     items.add(defer(Wandmaker.Quest.wand2, "老杖匠任务"));
                     wandmakerLogged = true;
                 }
-                if (!impLogged && (Imp.Quest.reward != null || !Imp.Quest.rewardOptions.isEmpty())) {
-                    if (Imp.Quest.reward != null) items.add(defer(Imp.Quest.reward, "野心勃勃的小恶魔任务"));
-                    for (Item item : Imp.Quest.rewardOptions) items.add(defer(item, "小恶魔可选奖励"));
+                if (!impLogged && level.mobs.stream().anyMatch(mob -> mob instanceof Imp)) {
+                    Item reward = Imp.Quest.reward;
+                    if (reward != null) items.add(() -> snapshot(reward, "野心勃勃的小恶魔任务", true, true));
+                    for (Item item : Imp.Quest.rewardOptions) items.add(() -> snapshot(item, "小恶魔可选奖励", true, true));
                     impLogged = true;
                 }
                 List<FoundRoom> rooms = new ArrayList<>();
@@ -144,7 +144,7 @@ public final class DungeonEngine {
                         Item item = ((Item) cls.getDeclaredConstructor().newInstance()).identify();
                         if (item instanceof DocumentPage || item instanceof Guidebook) continue;
                         if (item instanceof Bag) continue;
-                        if (item instanceof Gold || item instanceof Key) continue;
+                        if (ItemRules.excluded(id(item.getClass()))) continue;
                         String name = clean(item.name());
                         if (name.contains(Messages.NO_TEXT_FOUND)) throw new IllegalStateException("物品名称资源缺失：" + id(cls));
                         String description = clean(item.desc());
@@ -171,6 +171,8 @@ public final class DungeonEngine {
         Dungeon.initSeed();
         GamesInProgress.selectedClass = HeroClass.WARRIOR;
         Dungeon.init();
+        // Upstream reset() leaves this static list populated. Every probe must start as a fresh run.
+        Imp.Quest.rewardOptions.clear();
     }
 
     private static List<FoundItem> rollTrinkets() {
@@ -188,11 +190,15 @@ public final class DungeonEngine {
     }
 
     private static FoundItem snapshot(Item item, String source, boolean reliable) {
+        return snapshot(item, source, reliable, false);
+    }
+
+    private static FoundItem snapshot(Item item, String source, boolean reliable, boolean impQuestReward) {
         item.identify();
         String appearance = item instanceof Potion || item instanceof Scroll || item instanceof Ring
                 ? clean(item.anonymousName()) : "";
         return new FoundItem(id(item.getClass()), clean(item.title()), category(item), item.level(), item.cursed,
-                source, appearance, item.image, reliable);
+                source, appearance, item.image, reliable, impQuestReward);
     }
 
     private static boolean isReliableLoot(Level level, Heap heap, Item item) {

@@ -4,7 +4,7 @@ package io.github.sospd.domain;
 public final class ItemRules {
     private ItemRules() {}
     public static boolean excluded(String id) {
-        return id.equals("items.Gold") || id.startsWith("items.keys.")
+        return id.equals("items.Gold") || id.equals("items.EnergyCrystal") || id.startsWith("items.keys.")
                 || id.startsWith("items.journal.") || id.startsWith("items.bags.");
     }
 }

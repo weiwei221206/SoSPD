@@ -26,6 +26,20 @@ public class ConditionMatcherTest {
         assertFalse(ConditionMatcher.matches(uncertain,
                 new SearchRequest(List.of(new Condition("potion", Category.POTION, null)), true, 1, 0)));
     }
+    @Test public void impQuestExclusionAppliesToBothAllAndAnyMatching() {
+        var questOnly = new DungeonReport("0", "AAA-AAA-AAA", 0, null, 0, List.of(
+                new Floor(17, "普通楼层", List.of(new FoundItem("ring", "神射之戒 +3", Category.RING, 3,
+                        false, "小恶魔可选奖励", "翡翠戒指", 0, true, true)), List.of())));
+        var condition = new Condition("ring", Category.RING, 3);
+        for (boolean all : new boolean[]{true, false}) {
+            assertTrue(ConditionMatcher.matches(questOnly, new SearchRequest(List.of(condition), all, 24, 0, false)));
+            assertFalse(ConditionMatcher.matches(questOnly, new SearchRequest(List.of(condition), all, 24, 0, true)));
+        }
+        // The same ring from ordinary loot, and room conditions, remain eligible.
+        assertTrue(ConditionMatcher.matches(report, new SearchRequest(List.of(new Condition("ring", Category.RING, 2)), true, 24, 0, true)));
+        assertTrue(ConditionMatcher.matches(report, new SearchRequest(List.of(new Condition("garden", Category.ROOM, null)), true, 24, 0, true)));
+        assertTrue(questOnly.floors().get(0).items().get(0).impQuestReward());
+    }
     @Test(expected = IllegalArgumentException.class) public void emptyConditionsRejected() {
         new SearchRequest(List.of(), true, 1, 0);
     }

@@ -24,6 +24,8 @@ public final class OfficialProbe {
                 Dungeon.initSeed();
                 GamesInProgress.selectedClass = HeroClass.WARRIOR;
                 Dungeon.init();
+                // Match a fresh game process: upstream reset() omits this static reward list.
+                com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Imp.Quest.rewardOptions.clear();
                 for (int depth = 1; depth <= 24; depth++) {
                     Level level = Dungeon.newLevel();
                     writer.println(Fingerprint.capture(request.key(), level));
