@@ -1,5 +1,5 @@
 Seeds of SPD / SoSPD
-版本：4.0.2-zhcn1（versionCode 5）
+版本：4.0.2-zhcn2（versionCode 6）
 状态：初步开发版本，2026-11-03
 
 已实现
@@ -7,6 +7,8 @@ Seeds of SPD / SoSPD
 - 指定种子探查、跟随手机日期与时区的每日挑战探查，逐层物品与房间结果。
 - 物品与房间图鉴、可视化找种条件、最低强化等级、任一/全部匹配。
 - 可停止的后台搜索、持续通知、搜索检查点、任务中断后的手动继续。
+- 设置中提供自动/1—4 路并行找种，各路使用独立计算进程，从不同的种子区间起点开始。
+- 每路分别保存检查点；同时命中的其他候选会保留到续搜，原有顺序搜索记录继续沿用原顺序。
 - Room 本地任务记录、DataStore 偏好、深浅主题。
 - 最大深度和挑战集中在设置；输入框粘贴；结果的种子右侧提供复制图标，不提供分享按钮。
 - 首页不展示历史列表；找种条件及任一/全部匹配方式保存在本地，直到用户手动移除。
@@ -28,6 +30,7 @@ Seeds of SPD / SoSPD
 - 不提供关于页；当前仅支持游戏 4.0.2。
 - 快速探查只接受带分隔符的九字母标准种子码，不把 OCR 任意文本作为自定义种子计算。
 - 快速探查沿用最大深度、挑战及显示分类；多码或识别失败时保留上一份结果。
+- 并行数量仅影响新找种任务；续搜沿用原任务的数量。自动模式在内存充足的多核设备上选择 2 路，否则 1 路。
 - 识别范围按屏幕比例保存，屏幕方向/比例改变后要求重新设置；关闭模式时释放捕获与悬浮窗资源。
 
 快速探查使用
@@ -58,9 +61,10 @@ Seeds of SPD / SoSPD
 - 本机 SDK、local.properties、构建产物、签名文件、Markdown 文件均被 .gitignore 排除。
 
 交付
-- artifacts/SoSPD-4.0.2-zhcn1.apk：经过 R8 精简并使用 SoSPD 固定发布签名的可安装 APK。
-- artifacts/SoSPD-4.0.2-zhcn1.apk.sha256：校验摘要。
+- artifacts/SoSPD-4.0.2-zhcn2.apk：经过 R8 精简并使用 SoSPD 固定发布签名的可安装 APK。
+- artifacts/SoSPD-4.0.2-zhcn2.apk.sha256：校验摘要。
 - artifacts/home.png、artifacts/report.png：模拟器实际界面截图。
 - artifacts/quick-region.png、artifacts/quick-mini.png：模拟器范围框选与迷你悬浮窗截图（测试画面）。
+- artifacts/parallel-search.png：zhcn2 精简包的四路并行找种实际界面。
 - 固定签名私钥与密码保存在 .signing 目录，不纳入 Git；请单独备份整个目录。
 - 公开证书和使用说明位于 signing 目录；后续 Release 构建自动沿用同一签名。
