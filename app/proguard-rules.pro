@@ -3,6 +3,7 @@
 -keepclassmembers class com.shatteredpixel.shatteredpixeldungeon.** { public <init>(); }
 -keepclassmembers class * implements com.watabou.utils.Bundlable { *; }
 -keep class io.github.sospd.domain.Models$* { *; }
+-keep class io.github.sospd.domain.SearchPartitions$* { *; }
 -keepattributes Signature,RuntimeVisibleAnnotations,AnnotationDefault,Record
 -keepclassmembers class com.shatteredpixel.shatteredpixeldungeon.journal.Document {
     java.util.LinkedHashMap pagesStates;

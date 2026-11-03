@@ -19,5 +19,6 @@ public class TaskEntity {
     public long elapsedMillis;
     public String reportJson;
     public String error;
+    public String checkpointJson;
 }
 

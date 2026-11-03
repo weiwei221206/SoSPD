@@ -2,9 +2,17 @@ package io.github.sospd.data;
 
 import androidx.room.Database;
 import androidx.room.RoomDatabase;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
+import androidx.annotation.NonNull;
 
-@Database(entities = {TaskEntity.class}, version = 1, exportSchema = false)
+@Database(entities = {TaskEntity.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
+    public static final Migration MIGRATION_1_2 = new Migration(1, 2) {
+        @Override public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE tasks ADD COLUMN checkpointJson TEXT");
+        }
+    };
     public abstract TaskDao tasks();
 }
 

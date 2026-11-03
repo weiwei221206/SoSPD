@@ -60,15 +60,20 @@ public final class Models {
             }
         }
     }
-    public record SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges, boolean excludeImpQuest) {
+    public record SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges, boolean excludeImpQuest, int parallelism) {
         public SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges) {
-            this(conditions, matchAll, floors, challenges, false);
+            this(conditions, matchAll, floors, challenges, false, 1);
+        }
+        public SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges, boolean excludeImpQuest) {
+            this(conditions, matchAll, floors, challenges, excludeImpQuest, 1);
         }
         public SearchRequest {
             if (conditions == null || conditions.isEmpty()) throw new IllegalArgumentException("请先添加找种条件");
             if (conditions.stream().anyMatch(c -> ItemRules.excluded(c.id()))) throw new IllegalArgumentException("搜索条件包含已排除的物品，请重新选择");
             conditions = List.copyOf(conditions);
             if (floors < 1 || floors > 24) throw new IllegalArgumentException("搜索深度应为 1—24 层");
+            if (parallelism == 0) parallelism = 1; // Old saved requests remain sequential.
+            if (parallelism < 1 || parallelism > 4) throw new IllegalArgumentException("并行搜索应为 1—4 路");
             if (challenges < 0 || challenges > 511) throw new IllegalArgumentException("挑战设置不正确");
         }
     }

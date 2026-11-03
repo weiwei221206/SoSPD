@@ -18,7 +18,7 @@ class SospdApplication : Application() {
 
 class AppContainer(app: Application) {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    val database = Room.databaseBuilder(app, AppDatabase::class.java, "sospd.db").build()
+    val database = Room.databaseBuilder(app, AppDatabase::class.java, "sospd.db").addMigrations(AppDatabase.MIGRATION_1_2).build()
     val tasks = database.tasks()
     val gson = Gson()
     val preferences = PreferencesRepository(app, gson)
