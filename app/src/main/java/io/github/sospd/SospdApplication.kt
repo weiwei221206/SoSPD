@@ -7,6 +7,7 @@ import io.github.sospd.data.AppDatabase
 import io.github.sospd.data.PreferencesRepository
 import io.github.sospd.engine.DungeonEngine
 import io.github.sospd.work.WorkState
+import io.github.sospd.quick.QuickModeState
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
@@ -23,6 +24,7 @@ class AppContainer(app: Application) {
     val preferences = PreferencesRepository(app, gson)
     val engine by lazy { DungeonEngine(File(app.filesDir, "engine")) }
     val work = MutableStateFlow<WorkState?>(null)
+    val quick = MutableStateFlow(QuickModeState())
     val historyVersion = MutableStateFlow(0L)
     // A process can die without Service.onDestroy(). Never silently restart an interrupted search.
     val ready = scope.async { tasks.markInterrupted() }

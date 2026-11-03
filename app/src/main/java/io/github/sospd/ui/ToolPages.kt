@@ -76,6 +76,7 @@ fun ScoutPage(state: AppUiState, idle: Boolean, model: AppViewModel) {
                 }
             }
         }
+        item { QuickScoutPanel(state, idle, model) }
     }
     if (showDate) {
         val picker = rememberDatePickerState(initialSelectedDateMillis = LocalDate.parse(date).toEpochDay() * 86_400_000)

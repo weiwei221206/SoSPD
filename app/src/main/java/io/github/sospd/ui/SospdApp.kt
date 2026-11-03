@@ -30,6 +30,8 @@ enum class Page(val title: String) { SCOUT("探查"), SEARCH("找种"), CATALOG(
 fun SospdApp(model: AppViewModel) {
     val state by model.state.collectAsStateWithLifecycle()
     val work by model.work.collectAsStateWithLifecycle()
+    val quick by model.quick.collectAsStateWithLifecycle()
+    val idle = work == null && !quick.busy
     var page by rememberSaveable { mutableStateOf(Page.SCOUT) }
     var showHistory by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
@@ -75,10 +77,10 @@ fun SospdApp(model: AppViewModel) {
                 }
                 if (state.report != null) {
                     ReportPage(state.report!!, state.reportTask, state.settings.hiddenCategories,
-                        state.catalog, work == null, model::resume)
+                        state.catalog, idle, model::resume)
                 } else pageStates.SaveableStateProvider(page.name) { when (page) {
-                    Page.SCOUT -> ScoutPage(state, work == null, model)
-                    Page.SEARCH -> SearchPage(state, work == null, model)
+                    Page.SCOUT -> ScoutPage(state, idle, model)
+                    Page.SEARCH -> SearchPage(state, idle, model)
                     Page.CATALOG -> CatalogPage(state.catalog, state.loading)
                     Page.SETTINGS -> SettingsPage(state, model)
                 } }
@@ -90,7 +92,7 @@ fun SospdApp(model: AppViewModel) {
             LazyColumn(Modifier.fillMaxWidth().heightIn(max = 560.dp), contentPadding = PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(state.history, key = { it.id }) { row ->
-                    HistoryCard(row, work == null, onOpen = { model.openReport(row); showHistory = false },
+                    HistoryCard(row, idle, onOpen = { model.openReport(row); showHistory = false },
                         onResume = { model.resume(row); showHistory = false })
                 }
             }

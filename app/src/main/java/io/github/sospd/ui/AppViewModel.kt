@@ -23,6 +23,7 @@ data class AppUiState(
     val matchAll: Boolean = true,
     val excludeImpQuest: Boolean = false,
     val error: String? = null,
+    val scanRegion: ScanRegion? = null,
 )
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -30,9 +31,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val mutableState = MutableStateFlow(AppUiState())
     val state = mutableState.asStateFlow()
     val work = container.work.asStateFlow()
+    val quick = container.quick.asStateFlow()
     private var awaitingTaskId: String? = null
     init {
         viewModelScope.launch { container.preferences.settings.collect { p -> mutableState.update { it.copy(settings = p) } } }
+        viewModelScope.launch { container.preferences.scanRegion.collect { region -> mutableState.update { it.copy(scanRegion = region) } } }
         viewModelScope.launch {
             try {
                 val (catalog, draft) = withContext(Dispatchers.IO) {
@@ -63,7 +66,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startScout(input: String, date: String?) {
-        if (work.value != null) return
+        if (work.value != null || quick.value.busy) return
         try {
             if (date == null) SeedCodec.fromText(input) else LocalDate.parse(date)
             val p = state.value.settings
@@ -71,7 +74,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: IllegalArgumentException) { showError(e.message ?: "请输入有效种子") }
     }
     fun startSearch() {
-        if (work.value != null) return
+        if (work.value != null || quick.value.busy) return
         try {
             val s = state.value
             val request = SearchRequest(s.conditions, s.matchAll, s.settings.floors, s.settings.challenges, s.excludeImpQuest)
@@ -79,7 +82,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: IllegalArgumentException) { showError(e.message ?: "请检查找种条件") }
     }
     fun resume(row: TaskEntity) {
-        if (work.value != null) return
+        if (work.value != null || quick.value.busy) return
         closeReport()
         start(true) { DungeonTaskService.resume(getApplication(), row.id) }
     }
