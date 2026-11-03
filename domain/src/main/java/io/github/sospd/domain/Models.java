@@ -61,6 +61,11 @@ public final class Models {
         }
     }
     public record SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges, boolean excludeImpQuest, int parallelism) {
+        // Android record desugaring lets Gson populate fields without calling the canonical constructor.
+        public int parallelism() { return parallelism == 0 ? 1 : parallelism; }
+        public SearchRequest validated() {
+            return new SearchRequest(conditions, matchAll, floors, challenges, excludeImpQuest, parallelism());
+        }
         public SearchRequest(List<Condition> conditions, boolean matchAll, int floors, int challenges) {
             this(conditions, matchAll, floors, challenges, false, 1);
         }

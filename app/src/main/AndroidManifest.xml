@@ -26,6 +26,10 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="User-requested draggable overlay to select a screen region for local dungeon seed OCR." />
         </service>
+        <service android:name=".work.SearchWorkerOne" android:exported="false" android:process=":seed_search_1" />
+        <service android:name=".work.SearchWorkerTwo" android:exported="false" android:process=":seed_search_2" />
+        <service android:name=".work.SearchWorkerThree" android:exported="false" android:process=":seed_search_3" />
+        <service android:name=".work.SearchWorkerFour" android:exported="false" android:process=":seed_search_4" />
         <service android:name=".work.DungeonTaskService" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="User-initiated offline dungeon seed analysis and cancellable seed search with visible progress." />

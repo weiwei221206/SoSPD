@@ -28,6 +28,7 @@ class NativeFlowTest {
             container.ready.await()
             container.preferences.setFloors(4)
             container.preferences.setChallenges(0)
+            container.preferences.setSearchWorkers(0)
             container.preferences.saveSearchDraft(SearchDraft(emptyList(), true))
         }
     }
@@ -111,7 +112,8 @@ class NativeFlowTest {
         compose.waitUntil(10_000) { compose.onAllNodesWithText("探查至 24 层 · 无挑战").fetchSemanticsNodes().isNotEmpty() }
         compose.onNode(hasSetTextAction()).performTextReplacement("666")
         compose.onNodeWithText("开始探查").performClick()
-        compose.waitUntil(20_000) { compose.onAllNodesWithText("探查结果").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(20_000) { container.work.value == null && compose.onAllNodesWithText("4.0.2 · 24 层 · 无挑战").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitForIdle()
         compose.onNodeWithText("4.0.2 · 24 层 · 无挑战").assertIsDisplayed()
     }
 

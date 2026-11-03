@@ -64,7 +64,7 @@ fun BusyCard(work: WorkState, stop: () -> Unit) {
                 Column(Modifier.weight(1f)) {
                     Text(if (work.stopping) "正在停止…" else if (work.searching) "正在寻找种子" else "正在探查地牢",
                         fontWeight = FontWeight.SemiBold)
-                    Text(if (work.searching) "已搜索 ${work.count} 个 · ${duration(work.elapsedMillis)}"
+                    Text(if (work.searching) (if (work.parallelism > 1) "${work.parallelism} 路并行 · " else "") + "已搜索 ${work.count} 个 · ${duration(work.elapsedMillis)}"
                         else if (work.floor == 0) "正在准备" else "第 ${work.floor} / ${work.totalFloors} 层",
                         style = MaterialTheme.typography.bodySmall)
                 }

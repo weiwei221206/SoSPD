@@ -25,6 +25,7 @@ data class WorkState(
     val totalFloors: Int,
     val elapsedMillis: Long = 0,
     val stopping: Boolean = false,
+    val parallelism: Int = 1,
 )
 
 class DungeonTaskService : Service() {
@@ -72,7 +73,7 @@ class DungeonTaskService : Service() {
                         id = intent?.getStringExtra(EXTRA_ID) ?: UUID.randomUUID().toString(); this.kind = kind; requestJson = json
                         startedAt = System.currentTimeMillis()
                         if (kind == "SEARCH") {
-                            val request = container.gson.fromJson(json, SearchRequest::class.java)
+                            val request = container.gson.fromJson(json, SearchRequest::class.java).validated()
                             label = "${request.conditions().size} 个条件 · ${if (request.matchAll()) "全部满足" else "任一满足"}"
                             startSeed = Math.floorMod(SecureRandom().nextLong(), SeedCodec.TOTAL_SEEDS)
                             nextSeed = startSeed
@@ -84,10 +85,10 @@ class DungeonTaskService : Service() {
                 }
                 row.status = "RUNNING"; row.updatedAt = System.currentTimeMillis(); row.error = null
                 container.tasks.save(row); container.historyChanged()
-                val depth = if (row.kind == "SEARCH") container.gson.fromJson(row.requestJson, SearchRequest::class.java).floors()
-                    else container.gson.fromJson(row.requestJson, ScoutRequest::class.java).floors()
+                val searchRequest = if (row.kind == "SEARCH") container.gson.fromJson(row.requestJson, SearchRequest::class.java).validated() else null
+                val depth = searchRequest?.floors() ?: container.gson.fromJson(row.requestJson, ScoutRequest::class.java).floors()
                 container.work.value = WorkState(row.id, row.kind == "SEARCH", row.searchedCount,
-                    totalFloors = depth, elapsedMillis = row.elapsedMillis)
+                    totalFloors = depth, elapsedMillis = row.elapsedMillis, parallelism = searchRequest?.parallelism() ?: 1)
                 if (row.kind == "SEARCH") search(row) else scout(row)
             } catch (_: java.util.concurrent.CancellationException) {
                 row?.status = "CANCELLED"
@@ -129,8 +130,16 @@ class DungeonTaskService : Service() {
         row.status = "COMPLETED"
     }
 
-    private fun search(row: TaskEntity) {
-        val request = container.gson.fromJson(row.requestJson, SearchRequest::class.java)
+    private suspend fun search(row: TaskEntity) {
+        val request = container.gson.fromJson(row.requestJson, SearchRequest::class.java).validated()
+        if (request.parallelism() > 1) {
+            ParallelSearchRunner(this, container.gson, container.tasks, cancelled) { count, elapsed, workers ->
+                container.work.value = WorkState(row.id, true, count, totalFloors = request.floors(),
+                    elapsedMillis = elapsed, stopping = cancelled.get(), parallelism = workers)
+                update("正在寻找种子", "$workers 路并行 · 已搜索 $count 个 · 可随时停止", true)
+            }.run(row, request)
+            return
+        }
         val started = SystemClock.elapsedRealtime()
         val priorElapsed = row.elapsedMillis
         var lastCheckpoint = 0L

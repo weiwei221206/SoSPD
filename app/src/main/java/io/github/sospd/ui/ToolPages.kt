@@ -199,6 +199,19 @@ fun SettingsPage(state: AppUiState, model: AppViewModel) {
         } }
         item {
             Panel {
+                SectionTitle("并行找种")
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    (0..io.github.sospd.work.SearchWorkers.maximum()).forEach { count ->
+                        FilterChip(state.settings.searchWorkers == count, { model.setSearchWorkers(count) },
+                            { Text(if (count == 0) "自动" else "$count 路") })
+                    }
+                }
+                Text("各路从不同种子位置查找，分别保存进度。自动模式根据设备配置选择；路数越多占用内存越多。仅对新搜索生效。",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        item {
+            Panel {
                 SectionTitle("结果显示分类")
                 Text("只影响结果展示，不改变找种条件或地牢生成。", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)

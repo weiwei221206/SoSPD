@@ -19,6 +19,7 @@ data class UserPreferences(
     val challenges: Int = 0,
     val theme: ThemeMode = ThemeMode.SYSTEM,
     val hiddenCategories: Set<String> = emptySet(),
+    val searchWorkers: Int = 0,
 )
 
 class PreferencesRepository(private val context: Context, private val gson: Gson = Gson()) {
@@ -26,6 +27,7 @@ class PreferencesRepository(private val context: Context, private val gson: Gson
     private val challenges = intPreferencesKey("challenges")
     private val theme = stringPreferencesKey("theme")
     private val hidden = stringSetPreferencesKey("hidden_categories")
+    private val workers = intPreferencesKey("search_workers")
     private val draft = stringPreferencesKey("search_draft")
     private val region = stringPreferencesKey("scan_region")
     val scanRegion = context.preferences.data.catch {
@@ -46,10 +48,12 @@ class PreferencesRepository(private val context: Context, private val gson: Gson
             (it[floors] ?: 4).coerceIn(1, 24), (it[challenges] ?: 0) and 511,
             runCatching { ThemeMode.valueOf(it[theme] ?: "SYSTEM") }.getOrDefault(ThemeMode.SYSTEM),
             it[hidden] ?: emptySet(),
+            (it[workers] ?: 0).coerceIn(0, 4),
         )
     }
     suspend fun setFloors(value: Int) { context.preferences.edit { it[floors] = value.coerceIn(1, 24) } }
     suspend fun setChallenges(value: Int) { context.preferences.edit { it[challenges] = value and 511 } }
+    suspend fun setSearchWorkers(value: Int) { context.preferences.edit { it[workers] = value.coerceIn(0, 4) } }
     suspend fun setTheme(value: ThemeMode) { context.preferences.edit { it[theme] = value.name } }
     suspend fun toggleCategory(category: Category) {
         context.preferences.edit {

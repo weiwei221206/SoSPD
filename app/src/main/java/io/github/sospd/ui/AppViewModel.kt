@@ -77,7 +77,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (work.value != null || quick.value.busy) return
         try {
             val s = state.value
-            val request = SearchRequest(s.conditions, s.matchAll, s.settings.floors, s.settings.challenges, s.excludeImpQuest)
+            val request = SearchRequest(s.conditions, s.matchAll, s.settings.floors, s.settings.challenges, s.excludeImpQuest,
+                SearchWorkers.resolve(getApplication(), s.settings.searchWorkers))
             start(true) { DungeonTaskService.search(getApplication(), request) }
         } catch (e: IllegalArgumentException) { showError(e.message ?: "请检查找种条件") }
     }
@@ -131,6 +132,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { container.preferences.setChallenges(next) }
     }
     fun setTheme(value: ThemeMode) { viewModelScope.launch { container.preferences.setTheme(value) } }
+    fun setSearchWorkers(value: Int) { viewModelScope.launch { container.preferences.setSearchWorkers(value) } }
     fun toggleCategory(value: Category) { viewModelScope.launch { container.preferences.toggleCategory(value) } }
     fun clearError() { mutableState.update { it.copy(error = null) } }
     private fun showError(message: String) { mutableState.update { it.copy(error = message) } }
