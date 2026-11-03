@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import io.github.sospd.domain.Models.Category
 import io.github.sospd.domain.Models.SearchDraft
+import io.github.sospd.domain.Models.ScanRegion
 import com.google.gson.Gson
 import java.io.IOException
 
@@ -26,6 +27,11 @@ class PreferencesRepository(private val context: Context, private val gson: Gson
     private val theme = stringPreferencesKey("theme")
     private val hidden = stringSetPreferencesKey("hidden_categories")
     private val draft = stringPreferencesKey("search_draft")
+    private val region = stringPreferencesKey("scan_region")
+    val scanRegion = context.preferences.data.catch {
+        if (it is IOException) emit(emptyPreferences()) else throw it
+    }.map { values -> runCatching { values[region]?.let { gson.fromJson(it, ScanRegion::class.java) } }.getOrNull() }
+    suspend fun saveScanRegion(value: ScanRegion) { context.preferences.edit { it[region] = gson.toJson(value) } }
     val searchDraft = context.preferences.data.catch {
         if (it is IOException) emit(emptyPreferences()) else throw it
     }.map { values ->

@@ -25,6 +25,21 @@ public final class Models {
     public record DungeonReport(String input, String seedCode, long seed, String dailyDate,
                                 int challenges, List<Floor> floors) {}
     public record Condition(String id, Category category, Integer minimumLevel) {}
+    public record ScanRegion(double left, double top, double right, double bottom, int screenWidth, int screenHeight) {
+        public ScanRegion {
+            if (!Double.isFinite(left + top + right + bottom) || left < 0 || top < 0 || right > 1 || bottom > 1
+                    || left >= right || top >= bottom || screenWidth <= 0 || screenHeight <= 0)
+                throw new IllegalArgumentException("识别范围无效，请重新框选");
+        }
+        public boolean matchesDisplay(int width, int height) {
+            return width > 0 && height > 0 && Math.abs((double) width / height / ((double) screenWidth / screenHeight) - 1) < 0.01;
+        }
+        public static ScanRegion fromPixels(int left, int top, int right, int bottom, int width, int height) {
+            if (right - left < 16 || bottom - top < 16) throw new IllegalArgumentException("识别范围太小，请重新框选");
+            return new ScanRegion((double) left / width, (double) top / height, (double) right / width,
+                    (double) bottom / height, width, height);
+        }
+    }
     public record SearchDraft(List<Condition> conditions, boolean matchAll, boolean excludeImpQuest) {
         public SearchDraft(List<Condition> conditions, boolean matchAll) { this(conditions, matchAll, false); }
         public SearchDraft {
