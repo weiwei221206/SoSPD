@@ -12,3 +12,9 @@
 -keep interface com.badlogic.gdx.Files { *; }
 -keep interface com.badlogic.gdx.Input { *; }
 
+# ML Kit discovers these through manifest metadata and calls the no-arg constructors reflectively.
+# Firebase's older consumer rule keeps class names but R8 full mode can still remove the constructors.
+-keepclassmembers class * implements com.google.firebase.components.ComponentRegistrar {
+    public <init>();
+}
+

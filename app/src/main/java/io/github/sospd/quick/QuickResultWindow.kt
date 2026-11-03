@@ -9,7 +9,9 @@ import android.widget.*
 import io.github.sospd.domain.ItemRules
 import io.github.sospd.domain.Models.DungeonReport
 import io.github.sospd.domain.Models.Category
+import io.github.sospd.domain.Models.FoundItem
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 internal class QuickResultWindow(private val context: Context, private val host: OverlayHost,
                                  private val identify: () -> Unit, private val close: () -> Unit) {
@@ -28,11 +30,11 @@ internal class QuickResultWindow(private val context: Context, private val host:
     private var scan: Button? = null
 
     private fun text(value: String, size: Float = 11f, color: Int = Color.WHITE) = context.overlayText(value, size, color).apply {
-        includeFontPadding = false; setPadding(0, context.dp(2), 0, context.dp(2))
+        includeFontPadding = false; setPadding(0, context.dp(1), 0, context.dp(1))
     }
     private fun button(value: String, action: () -> Unit) = context.overlayButton(value, action).apply {
         textSize = 11f; includeFontPadding = false
-        minHeight = context.dp(28); minimumHeight = context.dp(28)
+        minHeight = context.dp(26); minimumHeight = context.dp(26)
         setPadding(context.dp(5), context.dp(2), context.dp(5), context.dp(2))
     }
     private fun Button.available(value: Boolean) { isEnabled = value; alpha = if (value) 1f else 0.35f }
@@ -41,29 +43,32 @@ internal class QuickResultWindow(private val context: Context, private val host:
         if (collapsed) {
             val button = button("快查") { collapsed = false; show() }
             button.contentDescription = "展开快速探查"
+            button.background = context.overlayPanel().background
             host.show(button, context.dp(44), context.dp(34)); host.draggable(button) { collapsed = false; show() }
             return
         }
         val panel = context.overlayPanel().apply { setPadding(context.dp(8), context.dp(6), context.dp(8), context.dp(6)) }
         val header = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
         val title = text("快速探查", 12f).apply { setTypeface(null, Typeface.BOLD) }
-        header.addView(title, LinearLayout.LayoutParams(0, -2, 1f))
-        header.addView(button("收起") { collapsed = true; show() })
+        header.addView(title, LinearLayout.LayoutParams(-2, -2))
+        header.addView(button("收起") { collapsed = true; show() }, LinearLayout.LayoutParams(-2, context.dp(26)).apply {
+            marginStart = context.dp(6)
+        })
         panel.addView(header)
         val actions = LinearLayout(context)
         scan = button("识别", identify)
-        actions.addView(scan, LinearLayout.LayoutParams(0, -2, 1f))
-        actions.addView(button("关闭", close), LinearLayout.LayoutParams(0, -2, 1f))
+        actions.addView(scan, LinearLayout.LayoutParams(context.dp(40), context.dp(26)))
+        actions.addView(button("关闭", close), LinearLayout.LayoutParams(context.dp(40), context.dp(26)).apply { marginStart = context.dp(4) })
         panel.addView(actions)
         status = text(message, 10f, 0xFFD8D8D8.toInt())
         panel.addView(status)
-        val pages = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
+        val pages = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL or Gravity.LEFT }
         previous = button("−") { index--; populate() }.apply { contentDescription = "上一层" }
         next = button("+") { index++; populate() }.apply { contentDescription = "下一层" }
         page = text("—/—", 11f).apply { gravity = Gravity.CENTER }
-        pages.addView(previous, LinearLayout.LayoutParams(context.dp(30), context.dp(28)))
-        pages.addView(page, LinearLayout.LayoutParams(0, -2, 1f))
-        pages.addView(next, LinearLayout.LayoutParams(context.dp(30), context.dp(28)))
+        pages.addView(previous, LinearLayout.LayoutParams(context.dp(24), context.dp(26)))
+        pages.addView(page, LinearLayout.LayoutParams(context.dp(32), -2))
+        pages.addView(next, LinearLayout.LayoutParams(context.dp(24), context.dp(26)))
         panel.addView(pages)
         list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
         val screen = context.displaySize()
@@ -74,7 +79,7 @@ internal class QuickResultWindow(private val context: Context, private val host:
             }
         }.apply { addView(list); isFillViewport = false }
         panel.addView(scroll, LinearLayout.LayoutParams(-1, -2))
-        host.show(panel, min(context.dp(240), screen.x - context.dp(16)))
+        host.show(panel, min(context.dp(200), screen.x - context.dp(16)))
         host.draggable(header)
         populate()
     }
@@ -94,7 +99,8 @@ internal class QuickResultWindow(private val context: Context, private val host:
         status?.text = message; scan?.available(!busy)
         val value = report
         if (value == null) {
-            previous?.available(false); next?.available(false); return
+            previous?.available(false); next?.available(false)
+            host.resizeWidth(context.dp(130)); return
         }
         index = index.coerceIn(0, value.floors().lastIndex)
         val floor = value.floors()[index]
@@ -103,17 +109,25 @@ internal class QuickResultWindow(private val context: Context, private val host:
         list?.removeAllViews()
         val items = floor.items().filter { !ItemRules.excluded(it.id()) && it.category().name !in hidden }
         if (items.isEmpty()) list?.addView(text("这一层没有符合显示分类的物品"))
+        val paint = text("").paint
+        val nameWidth = ((items.maxOfOrNull { paint.measureText((if (it.reliable()) "" else "*") + it.name()) }
+            ?: 0f) + context.dp(2)).roundToInt().coerceIn(context.dp(40), context.dp(100))
+        val sourcePaint = text("", 10f).paint
+        val sourceWidth = ((items.maxOfOrNull { sourcePaint.measureText(detail(it)) } ?: 0f) + context.dp(2)).roundToInt()
+        host.resizeWidth((nameWidth + sourceWidth + context.dp(20)).coerceIn(context.dp(112),
+            min(context.dp(200), context.displaySize().x - context.dp(16))))
         for (item in items) {
             val row = LinearLayout(context).apply { gravity = Gravity.TOP }
             val name = text((if (item.reliable()) "" else "*") + item.name(), 11f,
                 if (item.cursed()) 0xFFFF7777.toInt() else Color.WHITE)
-            val detail = if (item.category() == Category.POTION || item.category() == Category.SCROLL)
-                item.appearance().ifBlank { "外观未知" } else item.source()
-            val source = text(detail, 10f, 0xFFBBBBBB.toInt()).apply { gravity = Gravity.RIGHT; setPadding(context.dp(4), context.dp(2), 0, context.dp(2)) }
-            row.addView(name, LinearLayout.LayoutParams(0, -2, 0.62f))
-            row.addView(source, LinearLayout.LayoutParams(0, -2, 0.38f))
+            val source = text(detail(item), 10f, 0xFFBBBBBB.toInt()).apply { gravity = Gravity.LEFT; setPadding(context.dp(4), context.dp(1), 0, context.dp(1)) }
+            row.addView(name, LinearLayout.LayoutParams(nameWidth, -2))
+            row.addView(source, LinearLayout.LayoutParams(0, -2, 1f))
             list?.addView(row)
         }
         scroll?.scrollTo(0, 0)
     }
+
+    private fun detail(item: FoundItem) = if (item.category() == Category.POTION || item.category() == Category.SCROLL)
+        item.appearance().ifBlank { "外观未知" } else item.source()
 }

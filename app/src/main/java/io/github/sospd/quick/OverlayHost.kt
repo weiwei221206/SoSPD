@@ -101,6 +101,14 @@ internal class OverlayHost(private val context: Context) {
     }
 
     fun visible(show: Boolean) { root?.visibility = if (show) View.VISIBLE else View.INVISIBLE }
+    fun resizeWidth(width: Int) {
+        val view = root ?: return
+        val layout = params ?: return
+        if (layout.width == width) return
+        layout.width = width
+        manager.updateViewLayout(view, layout)
+        view.post { clampPosition() }
+    }
     fun remove() {
         root?.let { if (it.isAttachedToWindow) manager.removeViewImmediate(it) }
         root = null; params = null
