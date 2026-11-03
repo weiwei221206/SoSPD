@@ -1,27 +1,44 @@
+# Gradle、Android Studio 与构建输出
 .gradle/
 .kotlin/
 .idea/
-.local/
 **/build/
 local.properties
 *.iml
+*.apk
+*.aab
+
+# 本机 SDK、验证记录、日志与交付产物
+/.local/
+/STATUS.txt
+/QA-RESULTS.txt
+*.log
+*.hprof
+/captures/
+/artifacts/
+/research/upstream/
+/research/*.zip
+
+# 签名材料与本机凭据：公开证书也不纳入仓库
+/.signing/
+/signing/
 *.jks
 *.keystore
-research/upstream/
-research/*.zip
-captures/
-/artifacts/
+*.p12
+*.pfx
+*.pem
+*.cer
+*.crt
+*.key
+signing.properties
 .env
 .env.*
 !.env.example
-*.apk
-*.aab
-*.hprof
+
+# 仅保留项目根目录的 README
+*.md
+!/README.md
+
+# 系统文件
 .DS_Store
 Thumbs.db
-*.md
-.signing/
-*.p12
-signing.properties
-
-
